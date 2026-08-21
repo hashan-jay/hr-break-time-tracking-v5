@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import PortalClock from './PortalClock';
+import PortalCredits from './PortalCredits';
+import ThemeToggle from './ThemeToggle';
 
 const ICONS = {
   portal: (
@@ -117,16 +119,19 @@ function StaffSidebar({ user, items, onLogout, onNavigate }) {
 
       <SidebarNav items={items} onNavigate={onNavigate} />
 
-      <PortalClock />
-
-      <div className="portal-side__footer">
-        <div className="portal-user">
-          <strong>{user?.fullName}</strong>
-          <span>{roleLabel(user?.roles)}</span>
+      <div className="portal-side__dock">
+        <PortalClock />
+        <ThemeToggle />
+        <div className="portal-side__footer">
+          <div className="portal-user">
+            <strong>{user?.fullName}</strong>
+            <span>{roleLabel(user?.roles)}</span>
+          </div>
+          <button type="button" className="portal-logout" onClick={onLogout}>
+            Logout
+          </button>
+          <PortalCredits />
         </div>
-        <button type="button" className="portal-logout" onClick={onLogout}>
-          Logout
-        </button>
       </div>
     </aside>
   );
@@ -191,6 +196,7 @@ export default function AppLayout() {
             Menu
           </button>
           <div className="portal-mobile-bar__title">Staff Portal</div>
+          <ThemeToggle compact />
         </header>
         <main className="main-panel">
           <Outlet />

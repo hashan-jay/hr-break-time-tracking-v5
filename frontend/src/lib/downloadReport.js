@@ -17,7 +17,7 @@ export function downloadHtmlReport(filename, bodyHtml) {
       '.meta div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #eee;padding:4px 0;}',
       '.meta span{color:#666;font-size:12px;}',
       '.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 18px;}',
-      '.kpi{border:1px solid #ddd;border-radius:0;padding:8px;text-align:center;}',
+      '.kpi{border:1px solid #ddd;border-radius:8px;padding:8px;text-align:center;}',
       '.kpi strong{display:block;font-size:18px;}',
       '.kpi span{font-size:11px;color:#555;}',
       'table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px;}',

@@ -14,6 +14,7 @@ import SettingsPage from './pages/SettingsPage';
 import AuditPage from './pages/AuditPage';
 import { LoadingBlock } from './components/UiBits';
 import { FeedbackProvider } from './feedback/FeedbackContext';
+import { ThemeProvider } from './theme/ThemeContext';
 import './App.css';
 
 function ProtectedRoute({ allow, allowSections }) {
@@ -74,10 +75,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <FeedbackProvider>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </FeedbackProvider>
+    <ThemeProvider>
+      <FeedbackProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </FeedbackProvider>
+    </ThemeProvider>
   );
 }

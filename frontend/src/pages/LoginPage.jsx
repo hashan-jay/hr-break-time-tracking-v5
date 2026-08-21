@@ -3,6 +3,8 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { apiErrorMessage } from '../api/client';
 import { useFeedback } from '../feedback/FeedbackContext';
+import PortalCredits from '../components/PortalCredits';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function LoginPage() {
   const { login, isAuthenticated, loading } = useAuth();
@@ -30,6 +32,9 @@ export default function LoginPage() {
 
   return (
     <div className="app-portal login-screen">
+      <div className="login-theme-toggle">
+        <ThemeToggle />
+      </div>
       <div className="login-panel">
         <div className="login-brand">
           <div className="portal-brand__mark" aria-hidden="true">BT</div>
@@ -88,6 +93,7 @@ export default function LoginPage() {
           </button>
         </form>
       </div>
+      <PortalCredits className="portal-credits--page" />
     </div>
   );
 }

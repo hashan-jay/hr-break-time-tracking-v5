@@ -23,9 +23,22 @@
   --portal-card: #ffffff;
   --portal-line: #e5e7eb;
   --portal-mint: #059669;
+  --portal-fill: #111827;
+  --on-fill: #ffffff;
+  --brand-panel: #111827;
+  --surface: #ffffff;
+  --input-bg: #ffffff;
+  --hover: #f9fafb;
+  --table-head: #f9fafb;
+  --radius-xs: 5px;
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
   --font-portal: "Instrument Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --font-portal-display: "Syne", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
 
+  color-scheme: light;
   font-family: "Segoe UI", "Trebuchet MS", sans-serif;
   color: var(--ink);
   background:
@@ -39,16 +52,57 @@
   -webkit-font-smoothing: antialiased;
 }
 
-* { box-sizing: border-box; border-radius: 0 !important; }
-*::before, *::after { border-radius: 0 !important; }
+html[data-theme="dark"] {
+  --bg: #101418;
+  --bg-accent: #12171c;
+  --ink: #e8edf2;
+  --muted: #9aa6b2;
+  --panel: #1a2028;
+  --line: #2b3440;
+  --teal: #2dd4bf;
+  --teal-dark: #14b8a6;
+  --amber: #fbbf24;
+  --green: #4ade80;
+  --blue: #60a5fa;
+  --red: #f87171;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.35);
+
+  --portal-canvas: #0f1217;
+  --portal-ink: #f3f4f6;
+  --portal-muted: #9ca3af;
+  --portal-accent: #f3f4f6;
+  --portal-accent-soft: #1c222c;
+  --portal-side: #151a22;
+  --portal-card: #1a2028;
+  --portal-line: #2b3440;
+  --portal-mint: #34d399;
+  --portal-fill: #e5e7eb;
+  --on-fill: #111827;
+  --brand-panel: #0b0e13;
+  --surface: #1a2028;
+  --input-bg: #12171d;
+  --hover: #232a35;
+  --table-head: #151a22;
+
+  color-scheme: dark;
+  color: var(--ink);
+  background: var(--portal-canvas);
+}
+
+* { box-sizing: border-box; }
 html, body, #root { min-height: 100%; margin: 0; }
-body { min-width: 320px; }
+body { min-width: 320px; background: transparent; }
 a { color: inherit; text-decoration: none; }
-button, input, select, textarea { font: inherit; }
+button, input, select, textarea {
+  font: inherit;
+  border-radius: var(--radius-sm);
+}
 code, kbd {
   font-family: ui-monospace, Consolas, monospace;
-  background: #e8efe9;
-  padding: 0.1rem 0.35rem;
+  background: var(--portal-accent-soft);
+  color: var(--portal-ink);
+  padding: 0.12rem 0.4rem;
+  border-radius: var(--radius-xs);
 }
 
 .app-portal {
@@ -79,6 +133,14 @@ code, kbd {
   box-shadow:
     0 2px 0 rgba(15, 23, 42, 0.05),
     0 12px 28px rgba(15, 23, 42, 0.1);
+}
+
+html[data-theme="dark"] .app-portal .portal-widget-3d {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme="dark"] .app-portal .portal-widget-3d:hover {
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4), 0 14px 28px rgba(0, 0, 0, 0.38);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api, { apiErrorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import PortalClock from '../components/PortalClock';
+import PortalCredits from '../components/PortalCredits';
+import ThemeToggle from '../components/ThemeToggle';
 import { StatusBadge } from '../components/UiBits';
 import { useFeedback } from '../feedback/FeedbackContext';
 import {
@@ -344,6 +346,7 @@ export default function PortalPage() {
             </p>
           </div>
           <div className="portal-employee-header__actions">
+            <ThemeToggle />
             <PortalClock />
             <div className="portal-onbreak-chip">
               <span>On break</span>
@@ -451,6 +454,7 @@ export default function PortalPage() {
             />
           </div>
         </div>
+        <PortalCredits className="portal-credits--page" />
       </main>
     </div>
   );
