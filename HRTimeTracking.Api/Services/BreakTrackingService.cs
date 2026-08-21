@@ -43,6 +43,7 @@ public class BreakTrackingService : IBreakTrackingService
         var mealLimit = await _settings.GetMealLimitMinutesAsync();
         var comfortStartLimit = await _settings.GetComfortStartLimitAsync();
         var mealStartLimit = await _settings.GetMealStartLimitAsync();
+        var limitsMap = await _settings.GetBreakLimitsMapAsync();
         var startLimitsByDepartment = await _settings.GetStartLimitsByDepartmentAsync();
 
         var employeesQuery = _db.Employees.AsNoTracking()
@@ -93,10 +94,23 @@ public class BreakTrackingService : IBreakTrackingService
         {
             var employeeSessions = sessions.Where(s => s.EmployeeId == e.Id).ToList();
             var livePeriod = ShiftWindow.ActiveAt(e.Shift, now);
-            var deptLimits = startLimitsByDepartment.TryGetValue(e.DepartmentId, out var limits)
-                ? limits
-                : (Meal: mealStartLimit, Comfort: comfortStartLimit);
-            return BuildStatus(e, employeeSessions, now, comfortLimit, mealLimit, livePeriod, deptLimits.Meal, deptLimits.Comfort);
+            var resolved = ResolveLimits(
+                e,
+                limitsMap,
+                startLimitsByDepartment,
+                mealStartLimit,
+                comfortStartLimit,
+                mealLimit,
+                comfortLimit);
+            return BuildStatus(
+                e,
+                employeeSessions,
+                now,
+                resolved.ComfortLimitMinutes,
+                resolved.MealLimitMinutes,
+                livePeriod,
+                resolved.MealStartLimit,
+                resolved.ComfortStartLimit);
         }).ToList();
 
         DateTime? periodStart = null;
@@ -154,10 +168,7 @@ public class BreakTrackingService : IBreakTrackingService
 
         var now = TimeDisplay.NowLocal();
         var livePeriod = ShiftWindow.ActiveAt(employee.Shift, now);
-        var comfortLimit = await _settings.GetComfortLimitMinutesAsync();
-        var mealLimit = await _settings.GetMealLimitMinutesAsync();
-        var mealStartLimit = await _settings.GetMealStartLimitForDepartmentAsync(employee.DepartmentId);
-        var comfortStartLimit = await _settings.GetComfortStartLimitForDepartmentAsync(employee.DepartmentId);
+        var limits = await _settings.GetBreakLimitsForEmployeeAsync(employee.ShiftId, employee.DepartmentId);
         var lookback = now.Date.AddDays(-2);
         var sessions = await _db.BreakSessions.AsNoTracking()
             .Where(b => b.EmployeeId == employeeId &&
@@ -173,7 +184,15 @@ public class BreakTrackingService : IBreakTrackingService
         }
 
         var inPeriod = sessions.Where(s => livePeriod is null || ShiftWindow.StartedIn(s.OutTime, livePeriod.Value) || s.InTime is null).ToList();
-        return BuildStatus(employee, inPeriod, now, comfortLimit, mealLimit, livePeriod, mealStartLimit, comfortStartLimit);
+        return BuildStatus(
+            employee,
+            inPeriod,
+            now,
+            limits.ComfortLimitMinutes,
+            limits.MealLimitMinutes,
+            livePeriod,
+            limits.MealStartLimit,
+            limits.ComfortStartLimit);
     }
 
     public async Task<(bool Ok, string? Error, EmployeeBreakStatusDto? Data)> ToggleAsync(int employeeId, string breakType, string? userId)
@@ -222,9 +241,8 @@ public class BreakTrackingService : IBreakTrackingService
         if (period is null)
             return (false, "This employee is not on a live shift right now. Breaks can only be started during their shift hours.", null);
 
-        var startLimit = type == BreakTypes.Meal
-            ? await _settings.GetMealStartLimitForDepartmentAsync(employee.DepartmentId)
-            : await _settings.GetComfortStartLimitForDepartmentAsync(employee.DepartmentId);
+        var limits = await _settings.GetBreakLimitsForEmployeeAsync(employee.ShiftId, employee.DepartmentId);
+        var startLimit = type == BreakTypes.Meal ? limits.MealStartLimit : limits.ComfortStartLimit;
         var startedCount = await CountStartsInPeriodAsync(employeeId, type, period.Value);
         if (startedCount >= startLimit)
             return (false, $"Cannot start another {type.ToLowerInvariant()} break this shift.", null);
@@ -449,7 +467,35 @@ public class BreakTrackingService : IBreakTrackingService
             comfortStartLimit,
             mealStartLimit,
             shiftPeriodEnd,
-            !string.IsNullOrEmpty(employee.PasscodeHash));
+            !string.IsNullOrEmpty(employee.PasscodeHash),
+            mealLimitMinutes,
+            comfortLimitMinutes);
+    }
+
+    private static ResolvedBreakLimitsDto ResolveLimits(
+        Employee employee,
+        IReadOnlyDictionary<(int ShiftId, int DepartmentId), ResolvedBreakLimitsDto> limitsMap,
+        IReadOnlyDictionary<int, (int Meal, int Comfort)> deptStartLimits,
+        int mealStartFallback,
+        int comfortStartFallback,
+        int mealMinutesFallback,
+        int comfortMinutesFallback)
+    {
+        if (employee.ShiftId.HasValue &&
+            limitsMap.TryGetValue((employee.ShiftId.Value, employee.DepartmentId), out var resolved))
+        {
+            return resolved;
+        }
+
+        var dept = deptStartLimits.TryGetValue(employee.DepartmentId, out var starts)
+            ? starts
+            : (Meal: mealStartFallback, Comfort: comfortStartFallback);
+
+        return new ResolvedBreakLimitsDto(
+            dept.Meal,
+            dept.Comfort,
+            mealMinutesFallback,
+            comfortMinutesFallback);
     }
 
     private async Task<int> CountStartsInPeriodAsync(int employeeId, string breakType, ShiftPeriod period)

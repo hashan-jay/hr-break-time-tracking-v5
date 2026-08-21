@@ -77,8 +77,8 @@ export function enrichEmployeesLive(list, nowMs, limits = {}) {
   const rows = (list || []).map((e) => {
     const mealTotal = shiftTotalSeconds(e, BREAK_TYPES.MEAL, nowMs);
     const comfortTotal = shiftTotalSeconds(e, BREAK_TYPES.COMFORT, nowMs);
-    const mealStatus = statusFromTotal(mealTotal, limits.mealLimitMinutes);
-    const comfortStatus = statusFromTotal(comfortTotal, limits.comfortLimitMinutes);
+    const mealStatus = statusFromTotal(mealTotal, e.mealLimitMinutes ?? limits.mealLimitMinutes);
+    const comfortStatus = statusFromTotal(comfortTotal, e.comfortLimitMinutes ?? limits.comfortLimitMinutes);
     const live = isOpenBreakLive(e, nowMs);
     return {
       ...e,

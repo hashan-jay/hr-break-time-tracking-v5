@@ -87,6 +87,7 @@ public class DepartmentService : IDepartmentService
         };
         _db.Departments.Add(entity);
         await _db.SaveChangesAsync();
+        await _settings.EnsureShiftDepartmentLimitsForDepartmentAsync(entity.Id);
         await _audit.LogAsync(userId, "Create", "Department", entity.Id.ToString(), $"Created department '{entity.Name}'.");
         return (true, null, await GetByIdAsync(entity.Id));
     }

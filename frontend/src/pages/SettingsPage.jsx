@@ -30,20 +30,24 @@ function SettingRow({ setting, min, max, onChange, onSave }) {
   );
 }
 
+function rowKey(shiftId, departmentId) {
+  return `${shiftId}:${departmentId}`;
+}
+
 export default function SettingsPage() {
   const { toast } = useFeedback();
   const [settings, setSettings] = useState([]);
-  const [deptLimits, setDeptLimits] = useState([]);
-  const [savingDeptId, setSavingDeptId] = useState(null);
-  const [savingAll, setSavingAll] = useState(false);
+  const [shiftGroups, setShiftGroups] = useState([]);
+  const [savingKey, setSavingKey] = useState(null);
+  const [savingShiftId, setSavingShiftId] = useState(null);
 
   const load = async () => {
-    const [settingsRes, deptRes] = await Promise.all([
+    const [settingsRes, shiftRes] = await Promise.all([
       api.get('/settings'),
-      api.get('/settings/department-start-limits'),
+      api.get('/settings/shift-department-break-limits'),
     ]);
     setSettings(settingsRes.data);
-    setDeptLimits(deptRes.data);
+    setShiftGroups(shiftRes.data);
   };
 
   useEffect(() => {
@@ -66,47 +70,76 @@ export default function SettingsPage() {
     setSettings((prev) => prev.map((x) => (x.id === id ? { ...x, value } : x)));
   };
 
-  const updateDeptLocal = (departmentId, field, value) => {
-    setDeptLimits((prev) => prev.map((row) => (
-      row.departmentId === departmentId ? { ...row, [field]: value } : row
-    )));
+  const updateShiftDeptLocal = (shiftId, departmentId, field, value) => {
+    setShiftGroups((prev) => prev.map((group) => {
+      if (group.shiftId !== shiftId) return group;
+      return {
+        ...group,
+        departments: group.departments.map((row) => (
+          row.departmentId === departmentId ? { ...row, [field]: value } : row
+        )),
+      };
+    }));
   };
 
-  const saveDept = async (row) => {
-    setSavingDeptId(row.departmentId);
+  const saveShiftDept = async (row) => {
+    const key = rowKey(row.shiftId, row.departmentId);
+    setSavingKey(key);
     try {
-      const { data } = await api.put(`/settings/department-start-limits/${row.departmentId}`, {
-        mealStartLimit: Number(row.mealStartLimit),
-        comfortStartLimit: Number(row.comfortStartLimit),
-      });
-      setDeptLimits((prev) => prev.map((x) => (x.departmentId === data.departmentId ? data : x)));
-      toast.success(`Start limits saved for ${data.departmentName}.`);
+      const { data } = await api.put(
+        `/settings/shift-department-break-limits/${row.shiftId}/${row.departmentId}`,
+        {
+          mealStartLimit: Number(row.mealStartLimit),
+          comfortStartLimit: Number(row.comfortStartLimit),
+          mealLimitMinutes: Number(row.mealLimitMinutes),
+          comfortLimitMinutes: Number(row.comfortLimitMinutes),
+        },
+      );
+      setShiftGroups((prev) => prev.map((group) => {
+        if (group.shiftId !== row.shiftId) return group;
+        return {
+          ...group,
+          departments: group.departments.map((item) => (
+            item.departmentId === row.departmentId ? data : item
+          )),
+        };
+      }));
+      toast.success(`Limits saved for ${data.departmentName} on ${data.shiftDisplay}.`);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not save department start limits.');
+      toast.error(err.response?.data?.message || 'Could not save shift/department limits.');
     } finally {
-      setSavingDeptId(null);
+      setSavingKey(null);
     }
   };
 
-  const saveAllDepartments = async () => {
-    if (deptLimits.length === 0) return;
-    setSavingAll(true);
+  const saveShiftGroup = async (group) => {
+    if (!group.departments?.length) return;
+    setSavingShiftId(group.shiftId);
     try {
       const updated = [];
-      for (const row of deptLimits) {
-        const { data } = await api.put(`/settings/department-start-limits/${row.departmentId}`, {
-          mealStartLimit: Number(row.mealStartLimit),
-          comfortStartLimit: Number(row.comfortStartLimit),
-        });
+      for (const row of group.departments) {
+        const { data } = await api.put(
+          `/settings/shift-department-break-limits/${row.shiftId}/${row.departmentId}`,
+          {
+            mealStartLimit: Number(row.mealStartLimit),
+            comfortStartLimit: Number(row.comfortStartLimit),
+            mealLimitMinutes: Number(row.mealLimitMinutes),
+            comfortLimitMinutes: Number(row.comfortLimitMinutes),
+          },
+        );
         updated.push(data);
       }
-      setDeptLimits(updated);
-      toast.success('Start limits saved for all departments.');
+      setShiftGroups((prev) => prev.map((item) => (
+        item.shiftId === group.shiftId
+          ? { ...item, departments: updated }
+          : item
+      )));
+      toast.success(`Limits saved for all departments on ${group.shiftDisplay}.`);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not save all department start limits.');
+      toast.error(err.response?.data?.message || 'Could not save all limits for this shift.');
       await load();
     } finally {
-      setSavingAll(false);
+      setSavingShiftId(null);
     }
   };
 
@@ -119,104 +152,145 @@ export default function SettingsPage() {
       <header className="page-header">
         <div>
           <h1>System Settings</h1>
-          <p>Limits for Meal Break and Comfort Break duration and start counts.</p>
+          <p>Configure Meal and Comfort break limits by shift and department.</p>
         </div>
       </header>
 
       <section className="settings-list">
-        <h2 className="settings-section-title">Break duration limits</h2>
+        <h2 className="settings-section-title">Default duration limits</h2>
         <p className="hint">
-          Defaults: Meal 60 minutes, Comfort 20 minutes. At or under X:00 is WELL SATISFIED (green).
-          Over X:00 is EXCEEDED BREAK TIME LIMIT (red).
+          Used when seeding new shift–department combinations. Existing configured rows keep their
+          values until you change them below.
         </p>
         {duration.map((s) => (
           <SettingRow key={s.id} setting={s} min={1} max={240} onChange={updateLocal} onSave={save} />
         ))}
       </section>
 
-      <section className="settings-list">
-        <h2 className="settings-section-title">Break start limits by department</h2>
-        <p className="hint">
-          Each department has its own Meal and Comfort start counts per shift. Example: IT Meal 10
-          means IT employees can start a meal break 10 times this shift; Finance Meal 2 means
-          Finance employees can start it only twice. After the limit is reached they cannot start
-          that break again until the next shift. Ending an open break is still allowed. Range 1–20.
-        </p>
-        <div className="settings-dept-toolbar">
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={savingAll || deptLimits.length === 0}
-            onClick={saveAllDepartments}
-          >
-            {savingAll ? 'Saving…' : 'Save all departments'}
-          </button>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Department</th>
-                <th>Employees</th>
-                <th>Meal starts / shift</th>
-                <th>Comfort starts / shift</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {deptLimits.map((row) => (
-                <tr key={row.departmentId}>
-                  <td className="col-name">{row.departmentName}</td>
-                  <td>{row.employeeCount}</td>
-                  <td>
-                    <input
-                      className="dept-limit-input"
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={row.mealStartLimit}
-                      onChange={(e) => updateDeptLocal(row.departmentId, 'mealStartLimit', e.target.value)}
-                      aria-label={`${row.departmentName} meal start limit`}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="dept-limit-input"
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={row.comfortStartLimit}
-                      onChange={(e) => updateDeptLocal(row.departmentId, 'comfortStartLimit', e.target.value)}
-                      aria-label={`${row.departmentName} comfort start limit`}
-                    />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      disabled={savingDeptId === row.departmentId || savingAll}
-                      onClick={() => saveDept(row)}
-                    >
-                      {savingDeptId === row.departmentId ? 'Saving…' : 'Save'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {deptLimits.length === 0 && (
+      {shiftGroups.map((group) => (
+        <section className="settings-list" key={group.shiftId}>
+          <div className="settings-shift-head">
+            <div>
+              <h2 className="settings-section-title">{group.shiftDisplay}</h2>
+              <p className="hint">
+                {group.isActive ? 'Active shift' : 'Inactive shift'} · {group.startTime} – {group.endTime}
+                {group.spansNextDay ? ' (+1)' : ''}. Set Meal/Comfort start counts and duration limits
+                for each department on this shift. Example: Data Team Meal starts 2 on Day shift and
+                5 on Night shift.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={savingShiftId === group.shiftId || group.departments.length === 0}
+              onClick={() => saveShiftGroup(group)}
+            >
+              {savingShiftId === group.shiftId ? 'Saving…' : 'Save all for this shift'}
+            </button>
+          </div>
+
+          <div className="table-wrap">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={5}>No departments found. Create departments first, then set start limits here.</td>
+                  <th>Department</th>
+                  <th>Employees</th>
+                  <th>Meal starts / shift</th>
+                  <th>Comfort starts / shift</th>
+                  <th>Meal limit (min)</th>
+                  <th>Comfort limit (min)</th>
+                  <th></th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody>
+                {group.departments.map((row) => {
+                  const key = rowKey(row.shiftId, row.departmentId);
+                  return (
+                    <tr key={key} className={row.departmentIsDeleted ? 'is-muted' : ''}>
+                      <td className="col-name">
+                        {row.departmentName}
+                        {row.departmentIsDeleted ? ' (deleted)' : ''}
+                      </td>
+                      <td>{row.employeeCount}</td>
+                      <td>
+                        <input
+                          className="dept-limit-input"
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={row.mealStartLimit}
+                          onChange={(e) => updateShiftDeptLocal(row.shiftId, row.departmentId, 'mealStartLimit', e.target.value)}
+                          aria-label={`${row.departmentName} meal start limit on ${group.shiftName}`}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="dept-limit-input"
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={row.comfortStartLimit}
+                          onChange={(e) => updateShiftDeptLocal(row.shiftId, row.departmentId, 'comfortStartLimit', e.target.value)}
+                          aria-label={`${row.departmentName} comfort start limit on ${group.shiftName}`}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="dept-limit-input"
+                          type="number"
+                          min={1}
+                          max={240}
+                          value={row.mealLimitMinutes}
+                          onChange={(e) => updateShiftDeptLocal(row.shiftId, row.departmentId, 'mealLimitMinutes', e.target.value)}
+                          aria-label={`${row.departmentName} meal duration on ${group.shiftName}`}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="dept-limit-input"
+                          type="number"
+                          min={1}
+                          max={240}
+                          value={row.comfortLimitMinutes}
+                          onChange={(e) => updateShiftDeptLocal(row.shiftId, row.departmentId, 'comfortLimitMinutes', e.target.value)}
+                          aria-label={`${row.departmentName} comfort duration on ${group.shiftName}`}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={savingKey === key || savingShiftId === group.shiftId}
+                          onClick={() => saveShiftDept(row)}
+                        >
+                          {savingKey === key ? 'Saving…' : 'Save'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {group.departments.length === 0 && (
+                  <tr>
+                    <td colSpan={7}>No departments found. Create departments first.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
+
+      {shiftGroups.length === 0 && (
+        <section className="settings-list">
+          <p className="hint">No shifts found. Create shifts and departments first, then configure limits here.</p>
+        </section>
+      )}
 
       <section className="settings-list">
         <h2 className="settings-section-title">Default start limits for new departments</h2>
         <p className="hint">
-          Used only when a new department is created. Existing departments keep the values in the
-          table above until you change them.
+          Used when a new department or shift–department row is created. Existing configured rows
+          keep their values until you change them above.
         </p>
         {starts.map((s) => (
           <SettingRow key={s.id} setting={s} min={1} max={20} onChange={updateLocal} onSave={save} />

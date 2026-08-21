@@ -16,6 +16,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<BreakSession> BreakSessions => Set<BreakSession>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<ShiftDepartmentBreakLimit> ShiftDepartmentBreakLimits => Set<ShiftDepartmentBreakLimit>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<UserPermission> UserPermissions => Set<UserPermission>();
 
@@ -105,6 +106,25 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(x => x.Key).HasMaxLength(100).IsRequired();
             entity.Property(x => x.Value).HasMaxLength(500).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(250);
+        });
+
+        builder.Entity<ShiftDepartmentBreakLimit>(entity =>
+        {
+            entity.HasIndex(x => new { x.ShiftId, x.DepartmentId }).IsUnique();
+            entity.Property(x => x.MealBreakStartLimit).IsRequired();
+            entity.Property(x => x.ComfortBreakStartLimit).IsRequired();
+            entity.Property(x => x.MealBreakLimitMinutes).IsRequired();
+            entity.Property(x => x.ComfortBreakLimitMinutes).IsRequired();
+
+            entity.HasOne(x => x.Shift)
+                .WithMany()
+                .HasForeignKey(x => x.ShiftId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Department)
+                .WithMany()
+                .HasForeignKey(x => x.DepartmentId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<RolePermission>(entity =>

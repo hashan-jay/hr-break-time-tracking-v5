@@ -183,21 +183,20 @@
 }
 
 .portal-logout {
-  border: 1px solid #991b1b;
+  border: none;
   border-radius: var(--radius-sm);
-  background: rgba(180, 35, 24, 0.7);
-  color: #fff;
+  background: var(--red);
+  color: rgba(255, 255, 255, 0.92);
   padding: 0.55rem 0.75rem;
-  font-weight: 700;
+  font-weight: 500;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .portal-logout:hover {
-  background: rgba(153, 27, 27, 0.82);
-  border-color: #7f1d1d;
-  color: #fff;
+  background: #912018;
+  color: rgba(255, 255, 255, 0.96);
 }
 
 html[data-theme="dark"] .portal-logout {
@@ -2002,6 +2001,16 @@ tbody tr.is-deleted:hover { background: var(--portal-accent-soft); }
   display: flex;
   justify-content: flex-end;
   margin: 0.35rem 0 0.75rem;
+}
+.settings-shift-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+.settings-shift-head .btn {
+  flex-shrink: 0;
 }
 .perm-panel { margin-bottom: 1.25rem; }
 .perm-role-row {

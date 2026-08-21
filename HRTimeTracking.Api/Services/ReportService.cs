@@ -60,6 +60,10 @@ public class ReportService : IReportService
         var mealLimit = await _settings.GetMealLimitMinutesAsync();
         var comfortStartLimit = await _settings.GetComfortStartLimitAsync();
         var mealStartLimit = await _settings.GetMealStartLimitAsync();
+        var limitsMap = await _settings.GetBreakLimitsMapAsync();
+        var deptStartLimits = await _settings.GetStartLimitsByDepartmentAsync();
+        var mealMinutesDefault = mealLimit;
+        var comfortMinutesDefault = comfortLimit;
 
         Shift? selectedShift = null;
         string? shiftName = null;
@@ -159,8 +163,26 @@ public class ReportService : IReportService
         var rows = roster.Select(employee =>
         {
             var empItems = sessionsByEmployee.GetValueOrDefault(employee.Id) ?? [];
-            var meal = SumBreakType(empItems, BreakTypes.Meal, now, mealLimit);
-            var comfort = SumBreakType(empItems, BreakTypes.Comfort, now, comfortLimit);
+            ResolvedBreakLimitsDto limits;
+            if (employee.ShiftId.HasValue &&
+                limitsMap.TryGetValue((employee.ShiftId.Value, employee.DepartmentId), out var resolved))
+            {
+                limits = resolved;
+            }
+            else
+            {
+                var dept = deptStartLimits.TryGetValue(employee.DepartmentId, out var starts)
+                    ? starts
+                    : (Meal: mealStartLimit, Comfort: comfortStartLimit);
+                limits = new ResolvedBreakLimitsDto(
+                    dept.Meal,
+                    dept.Comfort,
+                    mealMinutesDefault,
+                    comfortMinutesDefault);
+            }
+
+            var meal = SumBreakType(empItems, BreakTypes.Meal, now, limits.MealLimitMinutes);
+            var comfort = SumBreakType(empItems, BreakTypes.Comfort, now, limits.ComfortLimitMinutes);
 
             return new ReportRowDto(
                 employee.Id,

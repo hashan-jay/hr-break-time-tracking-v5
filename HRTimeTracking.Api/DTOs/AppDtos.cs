@@ -164,7 +164,9 @@ public record EmployeeBreakStatusDto(
     int ComfortStartLimit = BreakStatusCodes.DefaultComfortStartLimit,
     int MealStartLimit = BreakStatusCodes.DefaultMealStartLimit,
     DateTime? ShiftPeriodEnd = null,
-    bool HasPasscode = false)
+    bool HasPasscode = false,
+    int MealLimitMinutes = BreakStatusCodes.DefaultMealLimitMinutes,
+    int ComfortLimitMinutes = BreakStatusCodes.DefaultComfortLimitMinutes)
 {
     public bool IsOnComfortBreak => IsOnBreak && CurrentBreakType == BreakTypes.Comfort;
     public bool IsOnMealBreak => IsOnBreak && CurrentBreakType == BreakTypes.Meal;
@@ -281,6 +283,42 @@ public record DepartmentStartLimitDto(
 public record UpdateDepartmentStartLimitsRequest(
     [Required, Range(BreakStatusCodes.MinStartLimit, BreakStatusCodes.MaxStartLimit)] int MealStartLimit,
     [Required, Range(BreakStatusCodes.MinStartLimit, BreakStatusCodes.MaxStartLimit)] int ComfortStartLimit);
+
+public record ShiftDepartmentBreakLimitDto(
+    int Id,
+    int ShiftId,
+    string ShiftName,
+    string ShiftDisplay,
+    int DepartmentId,
+    string DepartmentName,
+    bool DepartmentIsDeleted,
+    int EmployeeCount,
+    int MealStartLimit,
+    int ComfortStartLimit,
+    int MealLimitMinutes,
+    int ComfortLimitMinutes);
+
+public record ShiftDepartmentBreakLimitsGroupDto(
+    int ShiftId,
+    string ShiftName,
+    string ShiftDisplay,
+    string StartTime,
+    string EndTime,
+    bool SpansNextDay,
+    bool IsActive,
+    IReadOnlyList<ShiftDepartmentBreakLimitDto> Departments);
+
+public record UpdateShiftDepartmentBreakLimitsRequest(
+    [Required, Range(BreakStatusCodes.MinStartLimit, BreakStatusCodes.MaxStartLimit)] int MealStartLimit,
+    [Required, Range(BreakStatusCodes.MinStartLimit, BreakStatusCodes.MaxStartLimit)] int ComfortStartLimit,
+    [Required, Range(1, 240)] int MealLimitMinutes,
+    [Required, Range(1, 240)] int ComfortLimitMinutes);
+
+public record ResolvedBreakLimitsDto(
+    int MealStartLimit,
+    int ComfortStartLimit,
+    int MealLimitMinutes,
+    int ComfortLimitMinutes);
 
 public record AuditLogDto(
     long Id,

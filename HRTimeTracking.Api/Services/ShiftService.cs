@@ -18,11 +18,13 @@ public class ShiftService : IShiftService
 {
     private readonly AppDbContext _db;
     private readonly IAuditService _audit;
+    private readonly ISettingsService _settings;
 
-    public ShiftService(AppDbContext db, IAuditService audit)
+    public ShiftService(AppDbContext db, IAuditService audit, ISettingsService settings)
     {
         _db = db;
         _audit = audit;
+        _settings = settings;
     }
 
     public static string FormatMilitary(TimeOnly time) => time.ToString("HH:mm");
@@ -116,6 +118,7 @@ public class ShiftService : IShiftService
         };
         _db.Shifts.Add(entity);
         await _db.SaveChangesAsync();
+        await _settings.EnsureShiftDepartmentLimitsForShiftAsync(entity.Id);
         await _audit.LogAsync(userId, "Create", "Shift", entity.Id.ToString(),
             $"Created shift '{entity.Name}' {FormatMilitary(entity.StartTime)}-{FormatMilitary(entity.EndTime)}" +
             (entity.SpansNextDay ? " (overnight)." : "."));

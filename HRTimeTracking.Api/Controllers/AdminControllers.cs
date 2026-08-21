@@ -133,6 +133,28 @@ public class SettingsController : ControllerBase
         return Ok(data);
     }
 
+    [HttpGet("shift-department-break-limits")]
+    public async Task<ActionResult<IReadOnlyList<ShiftDepartmentBreakLimitsGroupDto>>> GetShiftDepartmentBreakLimits()
+        => Ok(await _service.GetShiftDepartmentBreakLimitsAsync());
+
+    [HttpPut("shift-department-break-limits/{shiftId:int}/{departmentId:int}")]
+    public async Task<ActionResult<ShiftDepartmentBreakLimitDto>> UpdateShiftDepartmentBreakLimits(
+        int shiftId,
+        int departmentId,
+        [FromBody] UpdateShiftDepartmentBreakLimitsRequest request)
+    {
+        var (ok, error, data) = await _service.UpdateShiftDepartmentBreakLimitsAsync(
+            shiftId,
+            departmentId,
+            request.MealStartLimit,
+            request.ComfortStartLimit,
+            request.MealLimitMinutes,
+            request.ComfortLimitMinutes,
+            User.GetUserId());
+        if (!ok || data is null) return BadRequest(new ApiMessage(error ?? "Update failed."));
+        return Ok(data);
+    }
+
     [HttpPut("{key}")]
     public async Task<ActionResult<SystemSettingDto>> Update(string key, [FromBody] UpdateSettingRequest request)
     {

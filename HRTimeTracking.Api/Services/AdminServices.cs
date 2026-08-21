@@ -163,6 +163,15 @@ public interface ISettingsService
     Task<int> GetMealStartLimitForDepartmentAsync(int departmentId);
     Task<int> GetComfortStartLimitForDepartmentAsync(int departmentId);
     Task<IReadOnlyDictionary<int, (int Meal, int Comfort)>> GetStartLimitsByDepartmentAsync();
+    Task EnsureShiftDepartmentLimitsAsync();
+    Task EnsureShiftDepartmentLimitsForShiftAsync(int shiftId);
+    Task EnsureShiftDepartmentLimitsForDepartmentAsync(int departmentId);
+    Task<IReadOnlyList<ShiftDepartmentBreakLimitsGroupDto>> GetShiftDepartmentBreakLimitsAsync();
+    Task<(bool Ok, string? Error, ShiftDepartmentBreakLimitDto? Data)> UpdateShiftDepartmentBreakLimitsAsync(
+        int shiftId, int departmentId, int mealStartLimit, int comfortStartLimit,
+        int mealLimitMinutes, int comfortLimitMinutes, string? userId);
+    Task<ResolvedBreakLimitsDto> GetBreakLimitsForEmployeeAsync(int? shiftId, int departmentId);
+    Task<IReadOnlyDictionary<(int ShiftId, int DepartmentId), ResolvedBreakLimitsDto>> GetBreakLimitsMapAsync();
 }
 
 public class SettingsService : ISettingsService
@@ -347,6 +356,212 @@ public class SettingsService : ISettingsService
                 Comfort: ClampStartLimit(d.ComfortBreakStartLimit, comfortDefault)));
     }
 
+    public async Task EnsureShiftDepartmentLimitsAsync()
+    {
+        var mealMinutes = await GetMealLimitMinutesAsync();
+        var comfortMinutes = await GetComfortLimitMinutesAsync();
+        var mealDefault = await GetMealStartLimitAsync();
+        var comfortDefault = await GetComfortStartLimitAsync();
+
+        var shifts = await _db.Shifts.AsNoTracking().Select(s => s.Id).ToListAsync();
+        var departments = await _db.Departments.AsNoTracking()
+            .Select(d => new { d.Id, d.MealBreakStartLimit, d.ComfortBreakStartLimit })
+            .ToListAsync();
+        if (shifts.Count == 0 || departments.Count == 0) return;
+
+        var existing = await _db.ShiftDepartmentBreakLimits
+            .Select(x => new { x.ShiftId, x.DepartmentId })
+            .ToListAsync();
+        var existingSet = existing.Select(x => (x.ShiftId, x.DepartmentId)).ToHashSet();
+
+        var added = false;
+        foreach (var shiftId in shifts)
+        {
+            foreach (var department in departments)
+            {
+                if (existingSet.Contains((shiftId, department.Id))) continue;
+                _db.ShiftDepartmentBreakLimits.Add(new ShiftDepartmentBreakLimit
+                {
+                    ShiftId = shiftId,
+                    DepartmentId = department.Id,
+                    MealBreakStartLimit = ClampStartLimit(department.MealBreakStartLimit, mealDefault),
+                    ComfortBreakStartLimit = ClampStartLimit(department.ComfortBreakStartLimit, comfortDefault),
+                    MealBreakLimitMinutes = mealMinutes,
+                    ComfortBreakLimitMinutes = comfortMinutes,
+                    CreatedAt = DateTime.UtcNow
+                });
+                added = true;
+            }
+        }
+
+        if (added) await _db.SaveChangesAsync();
+    }
+
+    public Task EnsureShiftDepartmentLimitsForShiftAsync(int shiftId)
+        => EnsureShiftDepartmentLimitsAsync();
+
+    public Task EnsureShiftDepartmentLimitsForDepartmentAsync(int departmentId)
+        => EnsureShiftDepartmentLimitsAsync();
+
+    public async Task<IReadOnlyList<ShiftDepartmentBreakLimitsGroupDto>> GetShiftDepartmentBreakLimitsAsync()
+    {
+        await EnsureShiftDepartmentLimitsAsync();
+
+        var mealDefault = await GetMealStartLimitAsync();
+        var comfortDefault = await GetComfortStartLimitAsync();
+        var mealMinutesDefault = await GetMealLimitMinutesAsync();
+        var comfortMinutesDefault = await GetComfortLimitMinutesAsync();
+
+        var shifts = await _db.Shifts.AsNoTracking()
+            .OrderBy(s => s.StartTime)
+            .ThenBy(s => s.Name)
+            .ToListAsync();
+
+        var limits = await _db.ShiftDepartmentBreakLimits.AsNoTracking()
+            .Include(x => x.Department)
+            .Include(x => x.Shift)
+            .ToListAsync();
+
+        var employeeCounts = await _db.Employees.AsNoTracking()
+            .Where(e => !e.IsDeleted && e.ShiftId != null)
+            .GroupBy(e => new { ShiftId = e.ShiftId!.Value, e.DepartmentId })
+            .Select(g => new { g.Key.ShiftId, g.Key.DepartmentId, Count = g.Count() })
+            .ToListAsync();
+        var countMap = employeeCounts.ToDictionary(x => (x.ShiftId, x.DepartmentId), x => x.Count);
+
+        return shifts.Select(shift =>
+        {
+            var rows = limits
+                .Where(x => x.ShiftId == shift.Id)
+                .OrderBy(x => x.Department.IsDeleted)
+                .ThenBy(x => x.Department.Name)
+                .Select(x =>
+                {
+                    countMap.TryGetValue((shift.Id, x.DepartmentId), out var employeeCount);
+                    return new ShiftDepartmentBreakLimitDto(
+                        x.Id,
+                        shift.Id,
+                        shift.Name,
+                        ShiftService.BuildDisplayLabel(shift.Name, shift.StartTime, shift.EndTime, shift.SpansNextDay),
+                        x.DepartmentId,
+                        x.Department.Name,
+                        x.Department.IsDeleted,
+                        employeeCount,
+                        ClampStartLimit(x.MealBreakStartLimit, mealDefault),
+                        ClampStartLimit(x.ComfortBreakStartLimit, comfortDefault),
+                        ClampDurationMinutes(x.MealBreakLimitMinutes, mealMinutesDefault),
+                        ClampDurationMinutes(x.ComfortBreakLimitMinutes, comfortMinutesDefault));
+                })
+                .ToList();
+
+            return new ShiftDepartmentBreakLimitsGroupDto(
+                shift.Id,
+                shift.Name,
+                ShiftService.BuildDisplayLabel(shift.Name, shift.StartTime, shift.EndTime, shift.SpansNextDay),
+                ShiftService.FormatMilitary(shift.StartTime),
+                ShiftService.FormatMilitary(shift.EndTime),
+                shift.SpansNextDay,
+                shift.IsActive,
+                rows);
+        }).ToList();
+    }
+
+    public async Task<(bool Ok, string? Error, ShiftDepartmentBreakLimitDto? Data)> UpdateShiftDepartmentBreakLimitsAsync(
+        int shiftId, int departmentId, int mealStartLimit, int comfortStartLimit,
+        int mealLimitMinutes, int comfortLimitMinutes, string? userId)
+    {
+        if (mealStartLimit < BreakStatusCodes.MinStartLimit || mealStartLimit > BreakStatusCodes.MaxStartLimit)
+            return (false, $"Meal break start limit must be between {BreakStatusCodes.MinStartLimit} and {BreakStatusCodes.MaxStartLimit} times per shift.", null);
+
+        if (comfortStartLimit < BreakStatusCodes.MinStartLimit || comfortStartLimit > BreakStatusCodes.MaxStartLimit)
+            return (false, $"Comfort break start limit must be between {BreakStatusCodes.MinStartLimit} and {BreakStatusCodes.MaxStartLimit} times per shift.", null);
+
+        if (mealLimitMinutes < 1 || mealLimitMinutes > 240)
+            return (false, "Meal break duration limit must be between 1 and 240 minutes.", null);
+
+        if (comfortLimitMinutes < 1 || comfortLimitMinutes > 240)
+            return (false, "Comfort break duration limit must be between 1 and 240 minutes.", null);
+
+        await EnsureShiftDepartmentLimitsAsync();
+
+        var row = await _db.ShiftDepartmentBreakLimits
+            .Include(x => x.Shift)
+            .Include(x => x.Department)
+            .FirstOrDefaultAsync(x => x.ShiftId == shiftId && x.DepartmentId == departmentId);
+        if (row is null) return (false, "Shift and department combination not found.", null);
+        if (row.Department.IsDeleted)
+            return (false, "This department is deleted. Recover it before editing break limits.", null);
+
+        row.MealBreakStartLimit = mealStartLimit;
+        row.ComfortBreakStartLimit = comfortStartLimit;
+        row.MealBreakLimitMinutes = mealLimitMinutes;
+        row.ComfortBreakLimitMinutes = comfortLimitMinutes;
+        row.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        var employeeCount = await _db.Employees.CountAsync(e =>
+            !e.IsDeleted && e.ShiftId == shiftId && e.DepartmentId == departmentId);
+
+        await _audit.LogAsync(userId, "Update", "ShiftDepartmentBreakLimit", row.Id.ToString(),
+            $"Updated limits for '{row.Department.Name}' on shift '{row.Shift.Name}': Meal starts {mealStartLimit}, Comfort starts {comfortStartLimit}, Meal {mealLimitMinutes} min, Comfort {comfortLimitMinutes} min.");
+
+        return (true, null, new ShiftDepartmentBreakLimitDto(
+            row.Id,
+            row.ShiftId,
+            row.Shift.Name,
+            ShiftService.BuildDisplayLabel(row.Shift.Name, row.Shift.StartTime, row.Shift.EndTime, row.Shift.SpansNextDay),
+            row.DepartmentId,
+            row.Department.Name,
+            row.Department.IsDeleted,
+            employeeCount,
+            row.MealBreakStartLimit,
+            row.ComfortBreakStartLimit,
+            row.MealBreakLimitMinutes,
+            row.ComfortBreakLimitMinutes));
+    }
+
+    public async Task<ResolvedBreakLimitsDto> GetBreakLimitsForEmployeeAsync(int? shiftId, int departmentId)
+    {
+        if (shiftId.HasValue)
+        {
+            var row = await _db.ShiftDepartmentBreakLimits.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ShiftId == shiftId.Value && x.DepartmentId == departmentId);
+            if (row is not null)
+            {
+                return new ResolvedBreakLimitsDto(
+                    ClampStartLimit(row.MealBreakStartLimit, await GetMealStartLimitAsync()),
+                    ClampStartLimit(row.ComfortBreakStartLimit, await GetComfortStartLimitAsync()),
+                    ClampDurationMinutes(row.MealBreakLimitMinutes, await GetMealLimitMinutesAsync()),
+                    ClampDurationMinutes(row.ComfortBreakLimitMinutes, await GetComfortLimitMinutesAsync()));
+            }
+        }
+
+        return new ResolvedBreakLimitsDto(
+            await GetMealStartLimitForDepartmentAsync(departmentId),
+            await GetComfortStartLimitForDepartmentAsync(departmentId),
+            await GetMealLimitMinutesAsync(),
+            await GetComfortLimitMinutesAsync());
+    }
+
+    public async Task<IReadOnlyDictionary<(int ShiftId, int DepartmentId), ResolvedBreakLimitsDto>> GetBreakLimitsMapAsync()
+    {
+        await EnsureShiftDepartmentLimitsAsync();
+
+        var mealDefault = await GetMealStartLimitAsync();
+        var comfortDefault = await GetComfortStartLimitAsync();
+        var mealMinutesDefault = await GetMealLimitMinutesAsync();
+        var comfortMinutesDefault = await GetComfortLimitMinutesAsync();
+
+        var rows = await _db.ShiftDepartmentBreakLimits.AsNoTracking().ToListAsync();
+        return rows.ToDictionary(
+            x => (x.ShiftId, x.DepartmentId),
+            x => new ResolvedBreakLimitsDto(
+                ClampStartLimit(x.MealBreakStartLimit, mealDefault),
+                ClampStartLimit(x.ComfortBreakStartLimit, comfortDefault),
+                ClampDurationMinutes(x.MealBreakLimitMinutes, mealMinutesDefault),
+                ClampDurationMinutes(x.ComfortBreakLimitMinutes, comfortMinutesDefault)));
+    }
+
     private async Task<int> GetStartLimitAsync(string key, int fallback)
     {
         var value = await _db.SystemSettings.AsNoTracking()
@@ -364,4 +579,7 @@ public class SettingsService : ISettingsService
         => value < BreakStatusCodes.MinStartLimit || value > BreakStatusCodes.MaxStartLimit
             ? fallback
             : value;
+
+    private static int ClampDurationMinutes(int value, int fallback)
+        => value < 1 || value > 240 ? fallback : value;
 }
