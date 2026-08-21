@@ -1,0 +1,90 @@
+:root {
+  --bg: #f3f0e8;
+  --bg-accent: #e7efe8;
+  --ink: #1c2a24;
+  --muted: #5d6b64;
+  --panel: rgba(255, 252, 246, 0.92);
+  --line: #d5ddd6;
+  --teal: #0f6b5c;
+  --teal-dark: #0a4f44;
+  --amber: #b7791f;
+  --green: #1f7a45;
+  --blue: #1d4f91;
+  --red: #b42318;
+  --shadow: 0 1px 0 rgba(17, 24, 39, 0.04), 0 8px 20px rgba(17, 24, 39, 0.08);
+
+  /* RoarFitnessERP-aligned staff portal tokens */
+  --portal-canvas: #f7f8fa;
+  --portal-ink: #111827;
+  --portal-muted: #6b7280;
+  --portal-accent: #111827;
+  --portal-accent-soft: #f3f4f6;
+  --portal-side: #ffffff;
+  --portal-card: #ffffff;
+  --portal-line: #e5e7eb;
+  --portal-mint: #059669;
+  --font-portal: "Instrument Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-portal-display: "Syne", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, #dceee4 0%, transparent 40%),
+    radial-gradient(circle at top right, #f2e4c9 0%, transparent 35%),
+    linear-gradient(160deg, var(--bg), var(--bg-accent));
+  line-height: 1.45;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; border-radius: 0 !important; }
+*::before, *::after { border-radius: 0 !important; }
+html, body, #root { min-height: 100%; margin: 0; }
+body { min-width: 320px; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; }
+code, kbd {
+  font-family: ui-monospace, Consolas, monospace;
+  background: #e8efe9;
+  padding: 0.1rem 0.35rem;
+}
+
+.app-portal {
+  font-family: var(--font-portal);
+  color: var(--portal-ink);
+  background: var(--portal-canvas);
+}
+
+.app-portal h1,
+.app-portal h2,
+.app-portal h3,
+.app-portal .portal-display {
+  font-family: var(--font-portal);
+  letter-spacing: -0.025em;
+  font-weight: 600;
+}
+
+.app-portal .portal-widget-3d {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 0 rgba(15, 23, 42, 0.04),
+    0 6px 16px rgba(15, 23, 42, 0.07);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-portal .portal-widget-3d:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 2px 0 rgba(15, 23, 42, 0.05),
+    0 12px 28px rgba(15, 23, 42, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-portal .portal-widget-3d,
+  .app-portal .portal-widget-3d:hover {
+    transform: none;
+    transition: none;
+  }
+}
