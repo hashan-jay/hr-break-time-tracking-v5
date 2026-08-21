@@ -21,6 +21,10 @@ public class Employee
 
     public Shift? Shift { get; set; }
 
+    /// <summary>
+    /// Deactivated employees stay in the database with their break history.
+    /// True means deactivated, not permanently removed.
+    /// </summary>
     public bool IsDeleted { get; set; }
 
     public DateTime? DeletedAt { get; set; }

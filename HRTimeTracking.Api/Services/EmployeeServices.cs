@@ -117,7 +117,7 @@ public class DepartmentService : IDepartmentService
 
         var hasEmployees = await _db.Employees.AnyAsync(e => e.DepartmentId == id && !e.IsDeleted);
         if (hasEmployees)
-            return (false, "Cannot delete a department that still has employees. Move or delete those employees first.");
+            return (false, "Cannot delete a department that still has active employees. Move or deactivate those employees first.");
 
         entity.IsDeleted = true;
         entity.DeletedAt = DateTime.UtcNow;
@@ -144,10 +144,12 @@ public class DepartmentService : IDepartmentService
 
 public interface IEmployeeService
 {
-    Task<IReadOnlyList<EmployeeDto>> GetAllAsync(string? search = null, int? departmentId = null);
+    Task<IReadOnlyList<EmployeeDto>> GetAllAsync(string? search = null, int? departmentId = null, bool includeDeactivated = false, bool deactivatedOnly = false);
     Task<EmployeeDto?> GetByIdAsync(int id);
     Task<(bool Ok, string? Error, EmployeeDto? Data)> CreateAsync(CreateEmployeeRequest request, string? userId);
     Task<(bool Ok, string? Error, EmployeeDto? Data)> UpdateAsync(int id, UpdateEmployeeRequest request, string? userId);
+    Task<(bool Ok, string? Error, EmployeeDto? Data)> DeactivateAsync(int id, string? userId);
+    Task<(bool Ok, string? Error, EmployeeDto? Data)> ActivateAsync(int id, string? userId);
     Task<(bool Ok, string? Error)> DeleteAsync(int id, string? userId);
 }
 
@@ -177,12 +179,20 @@ public class EmployeeService : IEmployeeService
         e.DeletedAt,
         e.HireDate);
 
-    public async Task<IReadOnlyList<EmployeeDto>> GetAllAsync(string? search = null, int? departmentId = null)
+    public async Task<IReadOnlyList<EmployeeDto>> GetAllAsync(
+        string? search = null,
+        int? departmentId = null,
+        bool includeDeactivated = false,
+        bool deactivatedOnly = false)
     {
         var query = _db.Employees.AsNoTracking()
             .Include(e => e.Department)
             .Include(e => e.Shift)
-            .Where(e => !e.IsDeleted);
+            .AsQueryable();
+
+        if (deactivatedOnly) query = query.Where(e => e.IsDeleted);
+        else if (!includeDeactivated) query = query.Where(e => !e.IsDeleted);
+
         if (departmentId.HasValue) query = query.Where(e => e.DepartmentId == departmentId.Value);
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -195,7 +205,8 @@ public class EmployeeService : IEmployeeService
         }
 
         var list = await query
-            .OrderBy(e => e.FullName)
+            .OrderBy(e => e.IsDeleted)
+            .ThenBy(e => e.FullName)
             .ToListAsync();
         return list.Select(Map).ToList();
     }
@@ -205,7 +216,7 @@ public class EmployeeService : IEmployeeService
         var e = await _db.Employees.AsNoTracking()
             .Include(x => x.Department)
             .Include(x => x.Shift)
-            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+            .FirstOrDefaultAsync(x => x.Id == id);
         return e is null ? null : Map(e);
     }
 
@@ -213,7 +224,7 @@ public class EmployeeService : IEmployeeService
     {
         var code = request.EmployeeCode.Trim();
         if (await _db.Employees.AnyAsync(e => e.EmployeeCode == code))
-            return (false, "Employee code already exists.", null);
+            return (false, "Employee code already exists, including among deactivated employees. Activate that employee instead.", null);
 
         var dept = await _db.Departments.FirstOrDefaultAsync(d => d.Id == request.DepartmentId && !d.IsDeleted);
         if (dept is null) return (false, "Department not found.", null);
@@ -240,7 +251,7 @@ public class EmployeeService : IEmployeeService
     {
         var entity = await _db.Employees.FindAsync(id);
         if (entity is null) return (false, "Employee not found.", null);
-        if (entity.IsDeleted) return (false, "Employee not found.", null);
+        if (entity.IsDeleted) return (false, "This employee is deactivated. Activate them before editing.", null);
 
         var deptExists = await _db.Departments.AnyAsync(d => d.Id == request.DepartmentId && !d.IsDeleted);
         if (!deptExists) return (false, "Department not found.", null);
@@ -267,10 +278,49 @@ public class EmployeeService : IEmployeeService
         return null;
     }
 
+    public async Task<(bool Ok, string? Error, EmployeeDto? Data)> DeactivateAsync(int id, string? userId)
+    {
+        var entity = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id);
+        if (entity is null) return (false, "Employee not found.", null);
+        if (entity.IsDeleted) return (false, "Employee is already deactivated.", null);
+
+        var closedBreaks = await CloseOpenBreaksAsync(id, userId);
+
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        var details = closedBreaks > 0
+            ? $"Deactivated employee '{entity.FullName}' ({entity.EmployeeCode}). Closed {closedBreaks} open break(s)."
+            : $"Deactivated employee '{entity.FullName}' ({entity.EmployeeCode}). Existing records kept.";
+        await _audit.LogAsync(userId, "Deactivate", "Employee", entity.Id.ToString(), details);
+        return (true, null, await GetByIdAsync(entity.Id));
+    }
+
+    public async Task<(bool Ok, string? Error, EmployeeDto? Data)> ActivateAsync(int id, string? userId)
+    {
+        var entity = await _db.Employees.Include(e => e.Department).FirstOrDefaultAsync(e => e.Id == id);
+        if (entity is null) return (false, "Employee not found.", null);
+        if (!entity.IsDeleted) return (false, "Employee is already active.", null);
+        if (entity.Department is { IsDeleted: true })
+            return (false, "Cannot activate this employee because their department is deleted. Recover the department first.", null);
+
+        entity.IsDeleted = false;
+        entity.DeletedAt = null;
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        await _audit.LogAsync(userId, "Activate", "Employee", entity.Id.ToString(),
+            $"Activated employee '{entity.FullName}' ({entity.EmployeeCode}).");
+        return (true, null, await GetByIdAsync(entity.Id));
+    }
+
     public async Task<(bool Ok, string? Error)> DeleteAsync(int id, string? userId)
     {
-        var entity = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted);
+        var entity = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id);
         if (entity is null) return (false, "Employee not found.");
+        if (!entity.IsDeleted)
+            return (false, "Only deactivated employees can be permanently deleted. Deactivate the employee first.");
 
         var fullName = entity.FullName;
         var code = entity.EmployeeCode;
@@ -279,7 +329,33 @@ public class EmployeeService : IEmployeeService
         _db.BreakSessions.RemoveRange(sessions);
         _db.Employees.Remove(entity);
         await _db.SaveChangesAsync();
-        await _audit.LogAsync(userId, "Delete", "Employee", id.ToString(), $"Deleted employee '{fullName}' ({code}).");
+        await _audit.LogAsync(userId, "Delete", "Employee", id.ToString(),
+            $"Permanently deleted deactivated employee '{fullName}' ({code}) and {sessions.Count} break record(s).");
         return (true, null);
+    }
+
+    private async Task<int> CloseOpenBreaksAsync(int employeeId, string? userId)
+    {
+        var open = await _db.BreakSessions
+            .Where(b => b.EmployeeId == employeeId && b.InTime == null)
+            .ToListAsync();
+        if (open.Count == 0) return 0;
+
+        var now = TimeDisplay.NowLocal();
+        foreach (var session in open)
+        {
+            session.OutTime = TimeDisplay.AsLocal(session.OutTime);
+            var inTime = now < session.OutTime ? session.OutTime : now;
+            var type = string.IsNullOrWhiteSpace(session.BreakType)
+                ? BreakTypes.Comfort
+                : BreakTypes.Normalize(session.BreakType);
+            session.BreakType = type;
+            session.InTime = inTime;
+            session.DurationSeconds = TimeDisplay.ElapsedSeconds(session.OutTime, inTime);
+            session.ClosedByUserId = userId;
+            session.IsAutoClosed = false;
+        }
+
+        return open.Count;
     }
 }

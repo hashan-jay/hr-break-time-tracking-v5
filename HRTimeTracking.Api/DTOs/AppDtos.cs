@@ -74,8 +74,8 @@ public record EmployeeDto(
     int? ShiftId,
     string? ShiftName,
     string? ShiftDisplay,
-    bool IsDeleted,
-    DateTime? DeletedAt,
+    bool IsDeactivated,
+    DateTime? DeactivatedAt,
     DateTime HireDate);
 
 public record CreateEmployeeRequest(

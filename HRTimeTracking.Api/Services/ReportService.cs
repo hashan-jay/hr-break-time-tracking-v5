@@ -78,7 +78,7 @@ public class ReportService : IReportService
         var rosterQuery = _db.Employees.AsNoTracking()
             .Include(e => e.Department)
             .Include(e => e.Shift)
-            .Where(e => !e.IsDeleted);
+            .Where(e => !e.IsDeleted || employeeId.HasValue);
         if (departmentId.HasValue)
             rosterQuery = rosterQuery.Where(e => e.DepartmentId == departmentId.Value);
         if (employeeId.HasValue)
@@ -95,10 +95,9 @@ public class ReportService : IReportService
         var sessionsQuery = _db.BreakSessions.AsNoTracking()
             .Include(b => b.Employee).ThenInclude(e => e.Department)
             .Include(b => b.Employee).ThenInclude(e => e.Shift)
-            .Where(b => !b.Employee.IsDeleted &&
-                        (b.InTime == null ||
-                         (b.BreakDate >= from.AddDays(-1) && b.BreakDate <= to.AddDays(1)) ||
-                         (b.OutTime >= fromStart && b.OutTime < toEnd)));
+            .Where(b => b.InTime == null ||
+                        (b.BreakDate >= from.AddDays(-1) && b.BreakDate <= to.AddDays(1)) ||
+                        (b.OutTime >= fromStart && b.OutTime < toEnd));
         if (departmentId.HasValue)
             sessionsQuery = sessionsQuery.Where(b => b.Employee.DepartmentId == departmentId.Value);
         if (employeeId.HasValue)
@@ -146,6 +145,15 @@ public class ReportService : IReportService
                 .DistinctBy(e => e.Id)
                 .OrderBy(e => e.FullName)
                 .ToList();
+        }
+        else
+        {
+            var rosterIds = roster.Select(e => e.Id).ToHashSet();
+            var extra = sessionsByEmployee.Keys
+                .Where(id => !rosterIds.Contains(id))
+                .Select(id => inRange.First(x => x.Session.EmployeeId == id).Session.Employee)
+                .DistinctBy(e => e.Id);
+            roster = roster.Concat(extra).OrderBy(e => e.FullName).ToList();
         }
 
         var rows = roster.Select(employee =>

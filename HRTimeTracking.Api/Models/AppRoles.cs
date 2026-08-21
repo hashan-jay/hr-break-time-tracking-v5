@@ -23,4 +23,11 @@ public static class AppRoles
         HRAssistant => "HR Assistant",
         _ => role
     };
+
+    public static bool CanDeactivateEmployees(System.Security.Claims.ClaimsPrincipal? user) =>
+        user is not null &&
+        (user.IsInRole(Developer) || user.IsInRole(HRManager) || user.IsInRole(SystemAdministration));
+
+    public static bool CanPurgeEmployees(System.Security.Claims.ClaimsPrincipal? user) =>
+        user is not null && user.IsInRole(Developer);
 }

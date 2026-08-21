@@ -205,8 +205,9 @@ public class BreakTrackingService : IBreakTrackingService
         var type = BreakTypes.Normalize(breakType);
 
         var employee = await _db.Employees.Include(e => e.Department).Include(e => e.Shift)
-            .FirstOrDefaultAsync(e => e.Id == employeeId && !e.IsDeleted);
+            .FirstOrDefaultAsync(e => e.Id == employeeId);
         if (employee is null) return (false, "Employee not found.", null);
+        if (employee.IsDeleted) return (false, "This employee is deactivated and cannot start a break.", null);
 
         await _autoClose.CloseExpiredAsync(employeeId);
         var open = await _db.BreakSessions.FirstOrDefaultAsync(b => b.EmployeeId == employeeId && b.InTime == null);
@@ -311,7 +312,7 @@ public class BreakTrackingService : IBreakTrackingService
         var query = _db.BreakSessions.AsNoTracking()
             .Include(b => b.Employee).ThenInclude(e => e.Department)
             .Include(b => b.Employee).ThenInclude(e => e.Shift)
-            .Where(b => b.BreakDate >= fromDate.AddDays(-1) && b.BreakDate <= toDate.AddDays(1) && !b.Employee.IsDeleted);
+            .Where(b => b.BreakDate >= fromDate.AddDays(-1) && b.BreakDate <= toDate.AddDays(1));
 
         if (employeeId.HasValue) query = query.Where(b => b.EmployeeId == employeeId.Value);
         if (departmentId.HasValue) query = query.Where(b => b.Employee.DepartmentId == departmentId.Value);

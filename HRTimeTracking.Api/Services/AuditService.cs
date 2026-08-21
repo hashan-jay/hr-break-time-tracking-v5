@@ -45,4 +45,10 @@ public static class ClaimsPrincipalExtensions
 {
     public static string? GetUserId(this ClaimsPrincipal user)
         => user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    public static bool CanDeactivateEmployees(this ClaimsPrincipal user)
+        => AppRoles.CanDeactivateEmployees(user);
+
+    public static bool CanPurgeEmployees(this ClaimsPrincipal user)
+        => AppRoles.CanPurgeEmployees(user);
 }

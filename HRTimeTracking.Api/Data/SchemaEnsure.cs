@@ -226,8 +226,21 @@ public static class SchemaEnsure
             BEGIN
                 INSERT INTO dbo.RolePermissions (RoleName, SectionKey) VALUES
                     (N'SystemAdministration', N'dashboard'),
+                    (N'SystemAdministration', N'employees'),
                     (N'SystemAdministration', N'settings'),
                     (N'SystemAdministration', N'audit');
+            END
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID(N'dbo.RolePermissions', N'U') IS NOT NULL
+               AND EXISTS (SELECT 1 FROM dbo.RolePermissions WHERE RoleName = N'SystemAdministration')
+               AND NOT EXISTS (
+                    SELECT 1 FROM dbo.RolePermissions
+                    WHERE RoleName = N'SystemAdministration' AND SectionKey = N'employees')
+            BEGIN
+                INSERT INTO dbo.RolePermissions (RoleName, SectionKey)
+                VALUES (N'SystemAdministration', N'employees');
             END
             """);
     }

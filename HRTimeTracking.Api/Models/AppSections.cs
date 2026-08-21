@@ -36,7 +36,7 @@ public static class AppSections
         => role switch
         {
             AppRoles.Developer => All,
-            AppRoles.SystemAdministration => [Dashboard, Settings, Audit],
+            AppRoles.SystemAdministration => [Dashboard, Employees, Settings, Audit],
             AppRoles.HRManager => [Dashboard, Tracking, Employees, Departments, Shifts, Reports],
             AppRoles.HRAssistant => [Dashboard, Tracking, Employees, Reports],
             _ => [Dashboard]

@@ -23,9 +23,23 @@ public class EmployeesController : ControllerBase
     [RequireSection(AppSections.Employees, AppSections.Tracking, AppSections.Reports)]
     public async Task<ActionResult<IReadOnlyList<EmployeeDto>>> GetAll(
         [FromQuery] string? search = null,
+        [FromQuery] int? departmentId = null,
+        [FromQuery] bool includeDeactivated = false)
+    {
+        return Ok(await _service.GetAllAsync(search, departmentId, includeDeactivated));
+    }
+
+    [HttpGet("deactivated")]
+    [RequireSection(AppSections.Employees)]
+    public async Task<ActionResult<IReadOnlyList<EmployeeDto>>> GetDeactivated(
+        [FromQuery] string? search = null,
         [FromQuery] int? departmentId = null)
     {
-        return Ok(await _service.GetAllAsync(search, departmentId));
+        if (!User.CanDeactivateEmployees())
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new ApiMessage("Only HR Manager, System Administration, and Developer can view deactivated employees."));
+
+        return Ok(await _service.GetAllAsync(search, departmentId, deactivatedOnly: true));
     }
 
     [HttpGet("{id:int}")]
@@ -55,12 +69,39 @@ public class EmployeesController : ControllerBase
         return Ok(data);
     }
 
+    [HttpPost("{id:int}/deactivate")]
+    [RequireSection(AppSections.Employees)]
+    public async Task<ActionResult<EmployeeDto>> Deactivate(int id)
+    {
+        if (!User.CanDeactivateEmployees())
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new ApiMessage("Only HR Manager, System Administration, and Developer can deactivate employees."));
+
+        var (ok, error, data) = await _service.DeactivateAsync(id, User.GetUserId());
+        if (!ok || data is null) return BadRequest(new ApiMessage(error ?? "Deactivate failed."));
+        return Ok(data);
+    }
+
+    [HttpPost("{id:int}/activate")]
+    [RequireSection(AppSections.Employees)]
+    public async Task<ActionResult<EmployeeDto>> Activate(int id)
+    {
+        if (!User.CanDeactivateEmployees())
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new ApiMessage("Only HR Manager, System Administration, and Developer can activate employees."));
+
+        var (ok, error, data) = await _service.ActivateAsync(id, User.GetUserId());
+        if (!ok || data is null) return BadRequest(new ApiMessage(error ?? "Activate failed."));
+        return Ok(data);
+    }
+
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = AppRoles.Developer)]
     [RequireSection(AppSections.Employees)]
     public async Task<ActionResult<ApiMessage>> Delete(int id)
     {
         var (ok, error) = await _service.DeleteAsync(id, User.GetUserId());
         if (!ok) return BadRequest(new ApiMessage(error ?? "Delete failed."));
-        return Ok(new ApiMessage("Employee deleted."));
+        return Ok(new ApiMessage("Employee and related break records permanently deleted."));
     }
 }
