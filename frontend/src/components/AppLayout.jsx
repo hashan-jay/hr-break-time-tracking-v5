@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useFeedback } from '../feedback/FeedbackContext';
 import PortalClock from './PortalClock';
 import PortalCredits from './PortalCredits';
+import { portalTitle, roleLabel } from '../lib/roles';
 import ThemeToggle from './ThemeToggle';
 
 const ICONS = {
@@ -84,14 +86,6 @@ const ICONS = {
   ),
 };
 
-function roleLabel(roles = []) {
-  if (roles.includes('Developer')) return 'System Developer';
-  if (roles.includes('SystemAdministration')) return 'System Administration';
-  if (roles.includes('HRManager')) return 'HR Manager';
-  if (roles.includes('HRAssistant')) return 'HR Assistant';
-  return roles.join(', ') || 'Staff';
-}
-
 function SidebarNav({ items, onNavigate }) {
   return (
     <nav className="portal-nav" aria-label="Staff navigation">
@@ -117,9 +111,8 @@ function StaffSidebar({ user, items, onLogout, onNavigate }) {
   return (
     <aside className="portal-side">
       <div className="portal-brand">
-        <div className="portal-brand__mark">BT</div>
         <div>
-          <div className="portal-brand__title">Staff Portal</div>
+          <div className="portal-brand__title">{portalTitle(user?.roles)}</div>
           <div className="portal-brand__sub">BreakTime</div>
         </div>
       </div>
@@ -127,8 +120,8 @@ function StaffSidebar({ user, items, onLogout, onNavigate }) {
       <SidebarNav items={items} onNavigate={onNavigate} />
 
       <div className="portal-side__dock">
-        <PortalClock />
         <ThemeToggle />
+        <PortalClock />
         <div className="portal-side__footer">
           <div className="portal-user">
             <strong>{user?.fullName}</strong>
@@ -146,6 +139,7 @@ function StaffSidebar({ user, items, onLogout, onNavigate }) {
 
 export default function AppLayout() {
   const { user, logout, can } = useAuth();
+  const { confirm } = useFeedback();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -154,7 +148,15 @@ export default function AppLayout() {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const onLogout = () => {
+  const onLogout = async () => {
+    const ok = await confirm({
+      title: 'Log out',
+      message: 'Do you really want to log out?',
+      confirmLabel: 'Yes',
+      cancelLabel: 'No',
+      tone: 'danger',
+    });
+    if (!ok) return;
     logout();
     navigate('/');
   };
@@ -203,7 +205,7 @@ export default function AppLayout() {
           <button type="button" className="portal-menu-btn" onClick={() => setMobileOpen(true)}>
             Menu
           </button>
-          <div className="portal-mobile-bar__title">Staff Portal</div>
+          <div className="portal-mobile-bar__title">{portalTitle(user?.roles)}</div>
           <ThemeToggle compact />
         </header>
         <main className="main-panel">

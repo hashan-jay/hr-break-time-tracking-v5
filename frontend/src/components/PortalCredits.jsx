@@ -1,9 +1,18 @@
-export default function PortalCredits({ className = '' }) {
+export default function PortalCredits({ className = '', employeePortal = false }) {
+  if (employeePortal) {
+    return (
+      <p className={['portal-credits', className].filter(Boolean).join(' ')}>
+        <span>©2026 Port City BPO (Pvt) Ltd. All Rights Reserved</span>
+        <span>Employee Break Tracking System - Developer Version 5.0</span>
+      </p>
+    );
+  }
+
   return (
     <p className={['portal-credits', className].filter(Boolean).join(' ')}>
-      <span>All Rights Reserved. Port City BPO (Pvt) Ltd.</span>
-      <span>Employee Break Tracking System</span>
-      <span>Developer Version 5.1.0</span>
+      <span>Port City BPO (Pvt) Ltd</span>
+      <span>©2026 All Rights Reserved</span>
+      <span>Employee Break Tracking System - Version 5.0</span>
     </p>
   );
 }

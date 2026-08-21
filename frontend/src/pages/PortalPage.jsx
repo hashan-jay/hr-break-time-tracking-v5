@@ -558,7 +558,7 @@ export default function PortalPage() {
             />
           </div>
         </div>
-        <PortalCredits className="portal-credits--page" />
+        <PortalCredits className="portal-credits--page" employeePortal />
       </main>
       {passcodeFlow && passcodeEmployee && (
         <PasscodeModal

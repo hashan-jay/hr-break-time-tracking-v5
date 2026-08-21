@@ -2,14 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api, { apiErrorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { LoadingBlock, StatusBadge } from '../components/UiBits';
+import { LoadingBlock } from '../components/UiBits';
 import { useFeedback } from '../feedback/FeedbackContext';
-import {
-  BREAK_TYPES,
-  enrichEmployeesLive,
-  formatElapsed,
-  typeFields,
-} from '../lib/breakHelpers';
+import { roleGreeting } from '../lib/roles';
 
 const KPI_ICONS = {
   users: (
@@ -107,8 +102,7 @@ export default function DashboardPage() {
   const auth = useAuth();
   const { toast } = useFeedback();
   const [data, setData] = useState(null);
-  const [board, setBoard] = useState(null);
-  const [nowMs, setNowMs] = useState(Date.now());
+  const [now, setNow] = useState(() => new Date());
   const copy = useMemo(
     () => welcomeCopy(auth),
     [auth.isDeveloper, auth.isSystemAdministration, auth.isHRManager, auth.isHRAssistant],
@@ -121,14 +115,6 @@ export default function DashboardPage() {
       try {
         const dashRes = await api.get('/reports/dashboard');
         setData(dashRes.data);
-        if (auth.canTrackBreaks) {
-          try {
-            const liveRes = await api.get('/breaks/live');
-            setBoard(liveRes.data);
-          } catch {
-            setBoard(null);
-          }
-        }
         lastError = '';
       } catch (err) {
         const msg = apiErrorMessage(err, 'Failed to load dashboard.');
@@ -141,24 +127,16 @@ export default function DashboardPage() {
     load();
     timer = setInterval(load, 5000);
     return () => clearInterval(timer);
-  }, [auth.canTrackBreaks, toast]);
+  }, [toast]);
 
   useEffect(() => {
-    const tick = setInterval(() => setNowMs(Date.now()), 1000);
+    const tick = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(tick);
   }, []);
 
-  const employeesView = useMemo(
-    () => enrichEmployeesLive(board?.employees, nowMs, {
-      mealLimitMinutes: board?.mealLimitMinutes ?? data?.mealLimitMinutes,
-      comfortLimitMinutes: board?.comfortLimitMinutes ?? data?.comfortLimitMinutes,
-    }),
-    [board, data, nowMs],
-  );
-
   if (!data) return <LoadingBlock label="Loading dashboard…" />;
 
-  const firstName = auth.user?.fullName?.split(' ')[0] || 'there';
+  const greeting = roleGreeting(auth.user?.roles, now);
 
   return (
     <div className="page portal-dashboard">
@@ -166,13 +144,13 @@ export default function DashboardPage() {
         <div>
           <p className="portal-eyebrow">{copy.eyebrow}</p>
           <h1 className="portal-display">
-            Welcome, {firstName}
+            {greeting}
             <span className="portal-display__sub">{copy.title}</span>
           </h1>
           <p className="portal-lead">{copy.subtitle}</p>
         </div>
         {auth.canTrackBreaks && (
-          <Link className="btn btn-primary" to="/app/tracking">
+          <Link className="btn btn-soft-green" to="/app/tracking">
             Open live tracking
           </Link>
         )}
@@ -217,66 +195,6 @@ export default function DashboardPage() {
               </section>
             </section>
           </div>
-
-          {employeesView.length > 0 && (
-            <section className="portal-quick-section">
-              <div className="portal-section-head">
-                <h2>This shift totals</h2>
-                <p>
-                  Closed (in − out) plus the live timer while a break is open. Totals reset when
-                  the current shift ends, before the next shift starts.
-                </p>
-              </div>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Employee</th>
-                      <th>Meal this shift</th>
-                      <th>Meal status</th>
-                      <th>Comfort this shift</th>
-                      <th>Comfort status</th>
-                      <th>State</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employeesView.map((e) => {
-                      const meal = typeFields(e, BREAK_TYPES.MEAL);
-                      const comfort = typeFields(e, BREAK_TYPES.COMFORT);
-                      return (
-                        <tr
-                          key={e.employeeId}
-                          className={[
-                            e.isOnBreak ? 'on-break' : '',
-                            e.isWithinShift === false && !e.isOnBreak ? 'off-shift' : '',
-                          ].filter(Boolean).join(' ')}
-                        >
-                          <td>{e.employeeCode}</td>
-                          <td>{e.fullName}</td>
-                          <td className={meal.isOnThisBreak ? 'is-live-total' : undefined}>
-                            <strong>{meal.totalDisplay}</strong>
-                          </td>
-                          <td><StatusBadge status={meal.status} color={meal.statusColor} /></td>
-                          <td className={comfort.isOnThisBreak ? 'is-live-total' : undefined}>
-                            <strong>{comfort.totalDisplay}</strong>
-                          </td>
-                          <td><StatusBadge status={comfort.status} color={comfort.statusColor} /></td>
-                          <td>
-                            {e.isOnBreak
-                              ? `On ${e.currentBreakType} (${formatElapsed(e.currentBreakElapsedSeconds)})`
-                              : e.isWithinShift === false
-                                ? 'Off shift'
-                                : 'In office'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
 
           <section className="portal-quick-section">
             <div className="portal-section-head">

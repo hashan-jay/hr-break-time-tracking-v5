@@ -95,11 +95,15 @@ export default function PasscodeModal({
   const [passcode, setPasscode] = useState('');
   const [confirmPasscode, setConfirmPasscode] = useState('');
   const [localError, setLocalError] = useState('');
+  const [hoverReady, setHoverReady] = useState(false);
 
   useEffect(() => {
     setPasscode('');
     setConfirmPasscode('');
     setLocalError('');
+    setHoverReady(false);
+    const timer = window.setTimeout(() => setHoverReady(true), 120);
+    return () => window.clearTimeout(timer);
   }, [mode, employee?.employeeId]);
 
   const error = localError || serverError || '';
@@ -124,7 +128,13 @@ export default function PasscodeModal({
 
   return (
     <div className="confirm-overlay passcode-overlay" role="presentation">
-      <form className="confirm-dialog passcode-dialog" onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="passcode-title">
+      <form
+        className={`confirm-dialog passcode-dialog${hoverReady ? ' confirm-dialog--interactive' : ''}`}
+        onSubmit={submit}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="passcode-title"
+      >
         <h2 id="passcode-title">{title}</h2>
         <dl className="passcode-meta">
           <div>
@@ -164,13 +174,23 @@ export default function PasscodeModal({
         )}
 
         {error && <p className="passcode-error" role="alert">{error}</p>}
-        <PasscodeGuide />
+        {isCreate && <PasscodeGuide />}
 
         <div className="confirm-dialog__actions">
           <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={busy}>
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary" disabled={busy}>
+          <button
+            type="submit"
+            className={`btn ${
+              action === 'end'
+                ? 'btn-end-break'
+                : isCreate
+                  ? 'btn-primary'
+                  : 'btn-start-break'
+            }`}
+            disabled={busy}
+          >
             {busy ? 'Please wait…' : isCreate ? 'Save passcode' : action === 'end' ? 'End break' : 'Start break'}
           </button>
         </div>
