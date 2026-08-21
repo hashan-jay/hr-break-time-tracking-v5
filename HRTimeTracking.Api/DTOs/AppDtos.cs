@@ -76,7 +76,8 @@ public record EmployeeDto(
     string? ShiftDisplay,
     bool IsDeactivated,
     DateTime? DeactivatedAt,
-    DateTime HireDate);
+    DateTime HireDate,
+    bool HasPasscode = false);
 
 public record CreateEmployeeRequest(
     [Required, MaxLength(50)] string EmployeeCode,
@@ -158,7 +159,8 @@ public record EmployeeBreakStatusDto(
     int MealStartCountToday = 0,
     int ComfortStartLimit = BreakStatusCodes.DefaultComfortStartLimit,
     int MealStartLimit = BreakStatusCodes.DefaultMealStartLimit,
-    DateTime? ShiftPeriodEnd = null)
+    DateTime? ShiftPeriodEnd = null,
+    bool HasPasscode = false)
 {
     public bool IsOnComfortBreak => IsOnBreak && CurrentBreakType == BreakTypes.Comfort;
     public bool IsOnMealBreak => IsOnBreak && CurrentBreakType == BreakTypes.Meal;
@@ -166,7 +168,22 @@ public record EmployeeBreakStatusDto(
 
 public record ToggleBreakRequest(
     [Required] int EmployeeId,
-    [Required] string BreakType);
+    [Required] string BreakType,
+    string? Passcode = null);
+
+public record SetEmployeePasscodeRequest(
+    [Required] int EmployeeId,
+    [Required] string Passcode,
+    [Required] string ConfirmPasscode);
+
+public record PasscodeApiResult(
+    bool Ok,
+    string Message,
+    string? ErrorCode = null,
+    bool HasPasscode = false,
+    int AttemptsLeft = EmployeePasscodeRules.MaxAttempts,
+    bool IsLocked = false,
+    DateTime? LockedUntil = null);
 
 public record LiveBoardDto(
     DateOnly Date,

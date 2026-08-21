@@ -150,6 +150,12 @@ export function typeFields(employee, breakType) {
   };
 }
 
+export function remainingBreakSeconds(employee, breakType, limitMinutes) {
+  const used = typeFields(employee, breakType).totalSeconds || 0;
+  const limit = Math.max(0, Number(limitMinutes) || 0) * 60;
+  return Math.max(0, limit - used);
+}
+
 export function startCount(employee, breakType) {
   return typeFields(employee, breakType).startCount;
 }

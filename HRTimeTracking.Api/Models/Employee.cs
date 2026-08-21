@@ -35,5 +35,18 @@ public class Employee
 
     public DateTime? UpdatedAt { get; set; }
 
+    /// <summary>
+    /// One-way hash of the employee's 3-character break passcode.
+    /// Null until the employee creates a passcode on the portal. Never expose this value.
+    /// </summary>
+    [MaxLength(500)]
+    public string? PasscodeHash { get; set; }
+
+    public DateTime? PasscodeSetAt { get; set; }
+
+    public int PasscodeFailedCount { get; set; }
+
+    public DateTime? PasscodeLockoutUntil { get; set; }
+
     public ICollection<BreakSession> BreakSessions { get; set; } = new List<BreakSession>();
 }

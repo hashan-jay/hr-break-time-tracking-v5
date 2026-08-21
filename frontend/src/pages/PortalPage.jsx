@@ -4,6 +4,7 @@ import api, { apiErrorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import PortalClock from '../components/PortalClock';
 import PortalCredits from '../components/PortalCredits';
+import PasscodeModal from '../components/PasscodeModal';
 import ThemeToggle from '../components/ThemeToggle';
 import { StatusBadge } from '../components/UiBits';
 import { useFeedback } from '../feedback/FeedbackContext';
@@ -15,6 +16,7 @@ import {
   formatLocalClock,
   isOffShift,
   offShiftReason,
+  remainingBreakSeconds,
   startLimitReached,
   typeFields,
 } from '../lib/breakHelpers';
@@ -183,6 +185,9 @@ export default function PortalPage() {
   const [shifts, setShifts] = useState([]);
   const [shiftId, setShiftId] = useState('');
   const [shiftId2, setShiftId2] = useState('');
+  const [passcodeFlow, setPasscodeFlow] = useState(null);
+  const [passcodeBusy, setPasscodeBusy] = useState(false);
+  const [passcodeError, setPasscodeError] = useState('');
   const searchRef = useRef(null);
   const busyRef = useRef(false);
   const lastLoadError = useRef('');
@@ -271,7 +276,7 @@ export default function PortalPage() {
   }, [board, employeesView, selectedMealId, selectedComfortId]);
 
   const captureToggle = useCallback(async (breakType) => {
-    if (busyRef.current) return;
+    if (busyRef.current || passcodeFlow) return;
     if (apiOnline === false) {
       toast.error('API is offline. Start the backend first.');
       return;
@@ -282,6 +287,10 @@ export default function PortalPage() {
       return;
     }
     const employee = employeesView.find((e) => e.employeeId === employeeId);
+    if (!employee) {
+      toast.error('Select your name from the list first.');
+      return;
+    }
     if (employee && !canSelectForCapture(employee, breakType)) {
       toast.error(isOffShift(employee)
         ? offShiftReason(employee)
@@ -293,27 +302,112 @@ export default function PortalPage() {
       toast.error(`Cannot start another ${breakType.toLowerCase()} break this shift.`);
       return;
     }
+    const onThisBreak = employee?.isOnBreak && employee?.currentBreakType === breakType;
+    let hasPasscode = Boolean(employee?.hasPasscode);
+    let attemptsLeft = 5;
+    try {
+      const { data } = await api.get(`/portal/passcode-status/${employeeId}`);
+      hasPasscode = Boolean(data.hasPasscode);
+      attemptsLeft = data.attemptsLeft ?? 5;
+      if (data.isLocked) {
+        toast.error(data.message || 'Too many incorrect attempts. Try again later.');
+        return;
+      }
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not check passcode status.'));
+      return;
+    }
+    setPasscodeError('');
+    setPasscodeFlow({
+      employeeId,
+      employee,
+      breakType,
+      action: onThisBreak ? 'end' : 'start',
+      step: hasPasscode ? 'verify' : 'create',
+      attemptsLeft,
+    });
+  }, [apiOnline, selectedMealId, selectedComfortId, employeesView, board, toast, passcodeFlow]);
+
+  const closePasscodeFlow = useCallback(() => {
+    setPasscodeFlow(null);
+    setPasscodeError('');
+    setPasscodeBusy(false);
+  }, []);
+
+  const savePasscode = useCallback(async (passcode, confirmPasscode) => {
+    if (!passcodeFlow) return;
+    setPasscodeBusy(true);
+    setPasscodeError('');
+    try {
+      const { data } = await api.post('/portal/passcode', {
+        employeeId: passcodeFlow.employeeId,
+        passcode,
+        confirmPasscode,
+      });
+      if (!data.ok && data.errorCode !== 'ALREADY_SET') {
+        setPasscodeError(data.message || 'Could not save passcode.');
+        return;
+      }
+      setPasscodeFlow((current) => current && {
+        ...current,
+        step: 'verify',
+        attemptsLeft: data.attemptsLeft ?? current.attemptsLeft,
+      });
+      toast.success(data.errorCode === 'ALREADY_SET'
+        ? 'A passcode is already set. Enter it to continue.'
+        : 'Passcode saved. Enter it to continue.');
+    } catch (err) {
+      const data = err?.response?.data;
+      setPasscodeError(data?.message || apiErrorMessage(err, 'Could not save passcode.'));
+    } finally {
+      setPasscodeBusy(false);
+    }
+  }, [passcodeFlow, toast]);
+
+  const verifyAndToggle = useCallback(async (passcode) => {
+    if (!passcodeFlow) return;
+    setPasscodeBusy(true);
+    setPasscodeError('');
     busyRef.current = true;
     setBusy(true);
     try {
-      const { data } = await api.post('/portal/toggle', { employeeId, breakType });
-      const fields = typeFields(data, breakType);
+      const { data } = await api.post('/portal/toggle', {
+        employeeId: passcodeFlow.employeeId,
+        breakType: passcodeFlow.breakType,
+        passcode,
+      });
+      const fields = typeFields(data, passcodeFlow.breakType);
       toast.success(
         data.isOnBreak
-          ? `${breakType} break started for ${data.fullName} at ${formatLocalClock(data.currentOutTime)}.`
-          : `${breakType} break ended for ${data.fullName}. This shift total: ${fields.totalDisplay}.`,
+          ? `${passcodeFlow.breakType} break started for ${data.fullName} at ${formatLocalClock(data.currentOutTime)}.`
+          : `${passcodeFlow.breakType} break ended for ${data.fullName}. This shift total: ${fields.totalDisplay}.`,
       );
+      closePasscodeFlow();
       await loadBoard();
     } catch (err) {
-      const raw = apiErrorMessage(err, 'Could not record break time.');
-      toast.error(/start limit/i.test(raw)
-        ? `Cannot start another ${breakType.toLowerCase()} break this shift.`
-        : raw);
+      const data = err?.response?.data;
+      if (data?.errorCode === 'PASSCODE_REQUIRED') {
+        setPasscodeFlow((current) => current && { ...current, step: 'create' });
+        setPasscodeError(data.message || 'Create your passcode first.');
+      } else if (data?.errorCode === 'PASSCODE_INVALID' || data?.errorCode === 'PASSCODE_INVALID_CHARS' || data?.errorCode === 'PASSCODE_LOCKED') {
+        setPasscodeError(data.message || 'Incorrect passcode.');
+        setPasscodeFlow((current) => current && {
+          ...current,
+          attemptsLeft: data.attemptsLeft ?? current.attemptsLeft,
+        });
+      } else {
+        const raw = data?.message || apiErrorMessage(err, 'Could not record break time.');
+        toast.error(/start limit/i.test(raw)
+          ? `Cannot start another ${passcodeFlow.breakType.toLowerCase()} break this shift.`
+          : raw);
+        closePasscodeFlow();
+      }
     } finally {
       busyRef.current = false;
       setBusy(false);
+      setPasscodeBusy(false);
     }
-  }, [apiOnline, selectedMealId, selectedComfortId, loadBoard, employeesView, board, toast]);
+  }, [passcodeFlow, closePasscodeFlow, loadBoard, toast]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -330,6 +424,16 @@ export default function PortalPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [captureToggle, activeType]);
+
+  const passcodeEmployee = passcodeFlow
+    ? (employeesView.find((e) => e.employeeId === passcodeFlow.employeeId) || passcodeFlow.employee)
+    : null;
+  const passcodeLimitMinutes = passcodeFlow?.breakType === BREAK_TYPES.MEAL
+    ? board?.mealLimitMinutes
+    : board?.comfortLimitMinutes;
+  const passcodeTimeLeft = passcodeEmployee
+    ? formatElapsed(remainingBreakSeconds(passcodeEmployee, passcodeFlow.breakType, passcodeLimitMinutes))
+    : '—';
 
   return (
     <div className="portal-shell">
@@ -431,7 +535,7 @@ export default function PortalPage() {
                 setSelectedMealId(id);
               }}
               onToggle={captureToggle}
-              busy={busy}
+              busy={busy || Boolean(passcodeFlow)}
               apiOnline={apiOnline}
             />
           </div>
@@ -449,13 +553,27 @@ export default function PortalPage() {
                 setSelectedComfortId(id);
               }}
               onToggle={captureToggle}
-              busy={busy}
+              busy={busy || Boolean(passcodeFlow)}
               apiOnline={apiOnline}
             />
           </div>
         </div>
         <PortalCredits className="portal-credits--page" />
       </main>
+      {passcodeFlow && passcodeEmployee && (
+        <PasscodeModal
+          mode={passcodeFlow.step}
+          employee={passcodeEmployee}
+          breakType={passcodeFlow.breakType}
+          action={passcodeFlow.action}
+          timeLeftDisplay={passcodeTimeLeft}
+          serverError={passcodeError}
+          busy={passcodeBusy}
+          onSave={savePasscode}
+          onVerify={verifyAndToggle}
+          onCancel={closePasscodeFlow}
+        />
+      )}
     </div>
   );
 }

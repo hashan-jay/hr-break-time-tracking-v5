@@ -2083,6 +2083,144 @@ tbody tr.is-deleted:hover { background: var(--portal-accent-soft); }
   margin-top: 0.35rem;
 }
 
+.passcode-dialog {
+  width: min(36rem, 100%);
+}
+
+.passcode-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 0.9rem;
+  margin: 0;
+}
+
+.passcode-meta div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.passcode-meta dt {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--portal-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.passcode-meta dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--portal-ink);
+}
+
+.passcode-field {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--portal-muted);
+}
+
+.passcode-field input {
+  border: 1px solid var(--portal-line);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.8rem;
+  background: var(--input-bg);
+  color: var(--portal-ink);
+  letter-spacing: 0.35em;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.passcode-error {
+  margin: 0;
+  color: var(--red) !important;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.passcode-guide {
+  border: 1px solid var(--portal-line);
+  background: var(--portal-accent-soft);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.75rem 0.8rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.passcode-guide__head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--portal-muted);
+  font-weight: 600;
+}
+
+.passcode-guide__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.5rem;
+  background: var(--portal-fill);
+  color: var(--on-fill);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-xs);
+}
+
+.passcode-guide__groups {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.passcode-guide__group {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.passcode-guide__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--portal-muted);
+}
+
+.passcode-guide__keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
+.passcode-guide__keys--symbols {
+  gap: 0.22rem;
+}
+
+.passcode-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.1rem;
+  padding: 0.22rem 0.42rem;
+  background: var(--surface);
+  border: 1px solid var(--portal-line);
+  color: var(--portal-ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  border-radius: var(--radius-xs);
+  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.06);
+}
+
+.passcode-key--symbol {
+  min-width: 1.55rem;
+  padding: 0.18rem 0.28rem;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
 .confirm-dialog .btn-ghost {
   border-color: var(--portal-line, var(--line));
   color: var(--portal-ink, var(--ink));

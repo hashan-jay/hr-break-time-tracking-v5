@@ -285,6 +285,19 @@ namespace HRTimeTracking.Api.Data.Migrations
                     b.Property<int?>("ShiftId")
                         .HasColumnType("int");
 
+                    b.Property<string>("PasscodeHash")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("PasscodeSetAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PasscodeFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PasscodeLockoutUntil")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 

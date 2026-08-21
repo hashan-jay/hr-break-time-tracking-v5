@@ -422,3 +422,10 @@ D:\Projects\HRBreakTimeTrackingV5\HRTimeTracking.Api\obj\Debug\net10.0\refint\HR
 D:\Projects\HRBreakTimeTrackingV5\HRTimeTracking.Api\obj\Debug\net10.0\HRTimeTracking.Api.pdb
 D:\Projects\HRBreakTimeTrackingV5\HRTimeTracking.Api\obj\Debug\net10.0\HRTimeTracking.Api.genruntimeconfig.cache
 D:\Projects\HRBreakTimeTrackingV5\HRTimeTracking.Api\obj\Debug\net10.0\ref\HRTimeTracking.Api.dll
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck\HRTimeTracking.Api.staticwebassets.endpoints.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck\appsettings.Development.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck\appsettings.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck\HRTimeTracking.Api.deps.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck\HRTimeTracking.Api.runtimeconfig.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck\HRTimeTracking.Api.dll
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck\HRTimeTracking.Api.pdb

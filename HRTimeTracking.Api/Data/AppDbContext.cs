@@ -47,6 +47,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(x => x.ShiftId);
             entity.Property(x => x.EmployeeCode).HasMaxLength(50).IsRequired();
             entity.Property(x => x.FullName).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.PasscodeHash).HasMaxLength(500);
+            entity.Property(x => x.PasscodeFailedCount).IsRequired().HasDefaultValue(0);
 
             entity.HasOne(x => x.Department)
                 .WithMany(x => x.Employees)

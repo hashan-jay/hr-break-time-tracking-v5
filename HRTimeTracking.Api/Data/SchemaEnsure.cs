@@ -243,5 +243,35 @@ public static class SchemaEnsure
                 VALUES (N'SystemAdministration', N'employees');
             END
             """);
+
+        // Additive employee passcode columns. Existing rows stay NULL / 0 — no data rewritten.
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('dbo.Employees', 'PasscodeHash') IS NULL
+            BEGIN
+                ALTER TABLE dbo.Employees ADD PasscodeHash nvarchar(500) NULL;
+            END
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('dbo.Employees', 'PasscodeSetAt') IS NULL
+            BEGIN
+                ALTER TABLE dbo.Employees ADD PasscodeSetAt datetime2 NULL;
+            END
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('dbo.Employees', 'PasscodeFailedCount') IS NULL
+            BEGIN
+                ALTER TABLE dbo.Employees ADD PasscodeFailedCount int NOT NULL
+                    CONSTRAINT DF_Employees_PasscodeFailedCount DEFAULT (0);
+            END
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('dbo.Employees', 'PasscodeLockoutUntil') IS NULL
+            BEGIN
+                ALTER TABLE dbo.Employees ADD PasscodeLockoutUntil datetime2 NULL;
+            END
+            """);
     }
 }

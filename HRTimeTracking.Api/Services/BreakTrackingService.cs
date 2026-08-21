@@ -448,7 +448,8 @@ public class BreakTrackingService : IBreakTrackingService
             mealSessions.Count,
             comfortStartLimit,
             mealStartLimit,
-            shiftPeriodEnd);
+            shiftPeriodEnd,
+            !string.IsNullOrEmpty(employee.PasscodeHash));
     }
 
     private async Task<int> CountStartsInPeriodAsync(int employeeId, string breakType, ShiftPeriod period)

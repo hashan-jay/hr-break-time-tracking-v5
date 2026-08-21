@@ -13,10 +13,12 @@ namespace HRTimeTracking.Api.Controllers;
 public class EmployeesController : ControllerBase
 {
     private readonly IEmployeeService _service;
+    private readonly IEmployeePasscodeService _passcodes;
 
-    public EmployeesController(IEmployeeService service)
+    public EmployeesController(IEmployeeService service, IEmployeePasscodeService passcodes)
     {
         _service = service;
+        _passcodes = passcodes;
     }
 
     [HttpGet]
@@ -103,5 +105,18 @@ public class EmployeesController : ControllerBase
         var (ok, error) = await _service.DeleteAsync(id, User.GetUserId());
         if (!ok) return BadRequest(new ApiMessage(error ?? "Delete failed."));
         return Ok(new ApiMessage("Employee and related break records permanently deleted."));
+    }
+
+    [HttpPost("{id:int}/passcode/reset")]
+    [RequireSection(AppSections.Employees)]
+    public async Task<ActionResult<ApiMessage>> ResetPasscode(int id)
+    {
+        if (!User.CanDeactivateEmployees())
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new ApiMessage("Only HR Manager, System Administration, and Developer can reset employee passcodes."));
+
+        var (ok, error) = await _passcodes.ResetAsync(id, User.GetUserId());
+        if (!ok) return BadRequest(new ApiMessage(error ?? "Reset failed."));
+        return Ok(new ApiMessage("Passcode reset. The employee must create a new passcode on the next break."));
     }
 }

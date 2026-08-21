@@ -177,7 +177,8 @@ public class EmployeeService : IEmployeeService
             : ShiftService.BuildDisplayLabel(e.Shift.Name, e.Shift.StartTime, e.Shift.EndTime, e.Shift.SpansNextDay),
         e.IsDeleted,
         e.DeletedAt,
-        e.HireDate);
+        e.HireDate,
+        !string.IsNullOrEmpty(e.PasscodeHash));
 
     public async Task<IReadOnlyList<EmployeeDto>> GetAllAsync(
         string? search = null,

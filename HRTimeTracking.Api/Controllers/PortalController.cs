@@ -15,11 +15,13 @@ public class PortalController : ControllerBase
 {
     private readonly IBreakTrackingService _breaks;
     private readonly IShiftService _shifts;
+    private readonly IEmployeePasscodeService _passcodes;
 
-    public PortalController(IBreakTrackingService breaks, IShiftService shifts)
+    public PortalController(IBreakTrackingService breaks, IShiftService shifts, IEmployeePasscodeService passcodes)
     {
         _breaks = breaks;
         _shifts = shifts;
+        _passcodes = passcodes;
     }
 
     [HttpGet("live")]
@@ -34,9 +36,28 @@ public class PortalController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<ShiftDto>>> Shifts()
         => Ok(await _shifts.GetAllAsync(includeInactive: false));
 
+    [HttpGet("passcode-status/{employeeId:int}")]
+    public async Task<ActionResult<PasscodeApiResult>> PasscodeStatus(int employeeId)
+    {
+        var result = await _passcodes.GetStatusAsync(employeeId);
+        if (result.ErrorCode == "NOT_FOUND") return NotFound(result);
+        return Ok(result);
+    }
+
+    [HttpPost("passcode")]
+    public async Task<ActionResult<PasscodeApiResult>> SetPasscode([FromBody] SetEmployeePasscodeRequest request)
+    {
+        var result = await _passcodes.SetAsync(request);
+        if (!result.Ok && result.ErrorCode != "ALREADY_SET") return BadRequest(result);
+        return Ok(result);
+    }
+
     [HttpPost("toggle")]
     public async Task<ActionResult<EmployeeBreakStatusDto>> Toggle([FromBody] ToggleBreakRequest request)
     {
+        var verify = await _passcodes.VerifyAsync(request.EmployeeId, request.Passcode);
+        if (!verify.Ok) return BadRequest(verify);
+
         var (ok, error, data) = await _breaks.ToggleAsync(request.EmployeeId, request.BreakType, userId: null);
         if (!ok || data is null) return BadRequest(new ApiMessage(error ?? "Toggle failed."));
         return Ok(data);
