@@ -273,5 +273,18 @@ public static class SchemaEnsure
                 ALTER TABLE dbo.Employees ADD PasscodeLockoutUntil datetime2 NULL;
             END
             """);
+
+        // Additive: HR Manager can reset employee kiosk passcodes. Never removes existing grants.
+        await db.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID(N'dbo.RolePermissions', N'U') IS NOT NULL
+               AND EXISTS (SELECT 1 FROM dbo.RolePermissions WHERE RoleName = N'HRManager')
+               AND NOT EXISTS (
+                    SELECT 1 FROM dbo.RolePermissions
+                    WHERE RoleName = N'HRManager' AND SectionKey = N'user-passcodes')
+            BEGIN
+                INSERT INTO dbo.RolePermissions (RoleName, SectionKey)
+                VALUES (N'HRManager', N'user-passcodes');
+            END
+            """);
     }
 }

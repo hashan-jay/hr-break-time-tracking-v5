@@ -75,6 +75,13 @@ const ICONS = {
       <path d="M4 6h.01M4 12h.01M4 18h.01" />
     </svg>
   ),
+  passcodes: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+      <rect x="4" y="10" width="16" height="10" rx="1.5" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      <circle cx="12" cy="15" r="1.4" />
+    </svg>
+  ),
 };
 
 function roleLabel(roles = []) {
@@ -161,6 +168,7 @@ export default function AppLayout() {
     can('shifts') && { to: '/app/shifts', label: 'Shifts', icon: ICONS.shifts },
     can('reports') && { to: '/app/reports', label: 'Reports', icon: ICONS.reports },
     can('users') && { to: '/app/users', label: 'Users', icon: ICONS.users },
+    can('user-passcodes') && { to: '/app/user-passcodes', label: 'User Passcodes', icon: ICONS.passcodes },
     can('settings') && { to: '/app/settings', label: 'Settings', icon: ICONS.settings },
     can('audit') && { to: '/app/audit', label: 'Audit Log', icon: ICONS.audit },
   ].filter(Boolean);

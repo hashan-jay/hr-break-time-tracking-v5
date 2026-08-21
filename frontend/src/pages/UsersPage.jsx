@@ -144,7 +144,8 @@ export default function UsersPage() {
           <h1>Users &amp; RBAC</h1>
           <p>
             Create accounts and assign an RBAC category. Section access is decided only by that
-            category. Developer accounts always keep full access. Users administration stays Developer-only.
+            category — including User Passcodes for employee break passcode resets. Developer accounts
+            always keep full access. Users administration and login password resets stay Developer-only.
           </p>
         </div>
       </header>
@@ -153,7 +154,8 @@ export default function UsersPage() {
         <h2 className="settings-section-title">Default access by role</h2>
         <p className="hint">
           These defaults apply to every account in that RBAC category. Changing a category updates
-          access for all of its users. Tick different sections for each category, then save.
+          access for all of its users. Tick different sections for each category (for example User
+          Passcodes), then save. Login password reset for staff accounts remains Developer-only on this page.
         </p>
         {roleDefaults.map((row) => (
           <div className="perm-role-row" key={row.role}>

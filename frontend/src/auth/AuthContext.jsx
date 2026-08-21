@@ -12,6 +12,7 @@ export const SECTIONS = [
   { key: 'reports', label: 'Reports' },
   { key: 'settings', label: 'Settings' },
   { key: 'audit', label: 'Audit Log' },
+  { key: 'user-passcodes', label: 'User Passcodes' },
 ];
 
 export const RBAC_CATEGORIES = [
@@ -95,6 +96,7 @@ export function AuthProvider({ children }) {
       ['reports', '/app/reports'],
       ['settings', '/app/settings'],
       ['audit', '/app/audit'],
+      ['user-passcodes', '/app/user-passcodes'],
       ['users', '/app/users'],
     ];
     const hit = order.find(([key]) => can(key));

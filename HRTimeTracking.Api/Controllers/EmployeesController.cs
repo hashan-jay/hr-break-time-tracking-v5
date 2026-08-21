@@ -14,11 +14,13 @@ public class EmployeesController : ControllerBase
 {
     private readonly IEmployeeService _service;
     private readonly IEmployeePasscodeService _passcodes;
+    private readonly IAuthService _auth;
 
-    public EmployeesController(IEmployeeService service, IEmployeePasscodeService passcodes)
+    public EmployeesController(IEmployeeService service, IEmployeePasscodeService passcodes, IAuthService auth)
     {
         _service = service;
         _passcodes = passcodes;
+        _auth = auth;
     }
 
     [HttpGet]
@@ -42,6 +44,14 @@ public class EmployeesController : ControllerBase
                 new ApiMessage("Only HR Manager, System Administration, and Developer can view deactivated employees."));
 
         return Ok(await _service.GetAllAsync(search, departmentId, deactivatedOnly: true));
+    }
+
+    [HttpGet("passcode-directory")]
+    [RequireSection(AppSections.UserPasscodes)]
+    public async Task<ActionResult<IReadOnlyList<EmployeeDto>>> PasscodeDirectory(
+        [FromQuery] string? search = null)
+    {
+        return Ok(await _service.GetAllAsync(search, departmentId: null, includeDeactivated: false));
     }
 
     [HttpGet("{id:int}")]
@@ -108,12 +118,13 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPost("{id:int}/passcode/reset")]
-    [RequireSection(AppSections.Employees)]
-    public async Task<ActionResult<ApiMessage>> ResetPasscode(int id)
+    [RequireSection(AppSections.UserPasscodes)]
+    public async Task<ActionResult<ApiMessage>> ResetPasscode(int id, [FromBody] ConfirmStaffCredentialsRequest request)
     {
-        if (!User.CanDeactivateEmployees())
-            return StatusCode(StatusCodes.Status403Forbidden,
-                new ApiMessage("Only HR Manager, System Administration, and Developer can reset employee passcodes."));
+        var (confirmed, confirmError) = await _auth.ConfirmCurrentPasswordAsync(
+            User.GetUserId() ?? string.Empty, request.UserName, request.Password);
+        if (!confirmed)
+            return BadRequest(new ApiMessage(confirmError ?? "Could not confirm your credentials."));
 
         var (ok, error) = await _passcodes.ResetAsync(id, User.GetUserId());
         if (!ok) return BadRequest(new ApiMessage(error ?? "Reset failed."));

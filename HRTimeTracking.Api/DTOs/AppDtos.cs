@@ -33,6 +33,10 @@ public record UpdateUserRequest(
     [Required] string Role,
     bool IsActive);
 
+public record ConfirmStaffCredentialsRequest(
+    [Required] string UserName,
+    [Required] string Password);
+
 public record ChangePasswordRequest(
     [Required, MinLength(8)] string NewPassword);
 

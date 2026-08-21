@@ -11,6 +11,7 @@ public static class AppSections
     public const string Users = "users";
     public const string Settings = "settings";
     public const string Audit = "audit";
+    public const string UserPasscodes = "user-passcodes";
 
     public static readonly (string Key, string Label)[] Catalog =
     [
@@ -21,7 +22,8 @@ public static class AppSections
         (Shifts, "Shifts"),
         (Reports, "Reports"),
         (Settings, "Settings"),
-        (Audit, "Audit Log")
+        (Audit, "Audit Log"),
+        (UserPasscodes, "User Passcodes")
     ];
 
     /// <summary>Sections a Developer may grant to configurable RBAC categories.</summary>
@@ -37,7 +39,7 @@ public static class AppSections
         {
             AppRoles.Developer => All,
             AppRoles.SystemAdministration => [Dashboard, Employees, Settings, Audit],
-            AppRoles.HRManager => [Dashboard, Tracking, Employees, Departments, Shifts, Reports],
+            AppRoles.HRManager => [Dashboard, Tracking, Employees, Departments, Shifts, Reports, UserPasscodes],
             AppRoles.HRAssistant => [Dashboard, Tracking, Employees, Reports],
             _ => [Dashboard]
         };

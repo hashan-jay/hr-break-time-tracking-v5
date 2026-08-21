@@ -30,7 +30,6 @@ function EmployeeTable({
   onDeactivate,
   onActivate,
   onPurge,
-  onResetPasscode,
   busyId,
 }) {
   const showActions = canEdit || canDeactivate || canPurge;
@@ -69,11 +68,6 @@ function EmployeeTable({
                   {canEdit && !e.isDeactivated && (
                     <button type="button" className="btn link-btn" onClick={() => onEdit(e)} disabled={busyId === e.id}>
                       Edit
-                    </button>
-                  )}
-                  {canDeactivate && !e.isDeactivated && e.hasPasscode && (
-                    <button type="button" className="btn link-btn" onClick={() => onResetPasscode(e)} disabled={busyId === e.id}>
-                      Reset passcode
                     </button>
                   )}
                   {canDeactivate && !e.isDeactivated && (
@@ -272,26 +266,6 @@ export default function EmployeesPage() {
     }
   };
 
-  const resetPasscode = async (emp) => {
-    const ok = await confirm({
-      title: 'Reset passcode',
-      message: `Reset the break passcode for ${emp.fullName}? They will create a new 3-character passcode the next time they start or end a break.`,
-      confirmLabel: 'Reset passcode',
-      tone: 'danger',
-    });
-    if (!ok) return;
-    setBusyId(emp.id);
-    try {
-      await api.post(`/employees/${emp.id}/passcode/reset`);
-      toast.success(`Passcode reset for ${emp.fullName}.`);
-      await load();
-    } catch (err) {
-      toast.error(apiErrorMessage(err, 'Passcode reset failed.'));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const purge = async (emp) => {
     const ok = await confirm({
       title: 'Permanently delete employee',
@@ -400,7 +374,6 @@ export default function EmployeesPage() {
               onDeactivate={deactivate}
               onActivate={activate}
               onPurge={purge}
-              onResetPasscode={resetPasscode}
               busyId={busyId}
             />
           </section>

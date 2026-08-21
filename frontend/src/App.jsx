@@ -10,6 +10,7 @@ import DepartmentsPage from './pages/DepartmentsPage';
 import ReportsPage from './pages/ReportsPage';
 import ShiftsPage from './pages/ShiftsPage';
 import UsersPage from './pages/UsersPage';
+import UserPasscodesPage from './pages/UserPasscodesPage';
 import SettingsPage from './pages/SettingsPage';
 import AuditPage from './pages/AuditPage';
 import { LoadingBlock } from './components/UiBits';
@@ -57,6 +58,9 @@ function AppRoutes() {
           </Route>
           <Route element={<ProtectedRoute allow={['Developer']} />}>
             <Route path="users" element={<UsersPage />} />
+          </Route>
+          <Route element={<ProtectedRoute allowSections={['user-passcodes']} />}>
+            <Route path="user-passcodes" element={<UserPasscodesPage />} />
           </Route>
           <Route element={<ProtectedRoute allowSections={['settings']} />}>
             <Route path="settings" element={<SettingsPage />} />

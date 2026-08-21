@@ -429,3 +429,10 @@ D:\Projects\HRBreakTimeTrackingV5\_buildcheck\HRTimeTracking.Api.deps.json
 D:\Projects\HRBreakTimeTrackingV5\_buildcheck\HRTimeTracking.Api.runtimeconfig.json
 D:\Projects\HRBreakTimeTrackingV5\_buildcheck\HRTimeTracking.Api.dll
 D:\Projects\HRBreakTimeTrackingV5\_buildcheck\HRTimeTracking.Api.pdb
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck2\appsettings.Development.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck2\HRTimeTracking.Api.staticwebassets.endpoints.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck2\appsettings.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck2\HRTimeTracking.Api.deps.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck2\HRTimeTracking.Api.runtimeconfig.json
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck2\HRTimeTracking.Api.dll
+D:\Projects\HRBreakTimeTrackingV5\_buildcheck2\HRTimeTracking.Api.pdb

@@ -61,6 +61,7 @@ public interface IAuthService
 {
     Task<(bool Ok, string? Error, DTOs.LoginResponse? Response)> LoginAsync(string userName, string password);
     Task<DTOs.UserDto?> GetCurrentUserAsync(string userId);
+    Task<(bool Ok, string? Error)> ConfirmCurrentPasswordAsync(string userId, string userName, string password);
 }
 
 public class AuthService : IAuthService
@@ -131,5 +132,24 @@ public class AuthService : IAuthService
             user.CreatedAt,
             user.LastLoginAt,
             permissions);
+    }
+
+    public async Task<(bool Ok, string? Error)> ConfirmCurrentPasswordAsync(string userId, string userName, string password)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null || !user.IsActive)
+            return (false, "Your session is no longer valid. Sign in again.");
+
+        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
+            return (false, "Enter your staff username and password to confirm.");
+
+        if (!string.Equals(user.UserName, userName.Trim(), StringComparison.OrdinalIgnoreCase))
+            return (false, "Enter your own staff username and password to confirm this reset.");
+
+        var valid = await _userManager.CheckPasswordAsync(user, password);
+        if (!valid)
+            return (false, "Invalid username or password.");
+
+        return (true, null);
     }
 }
