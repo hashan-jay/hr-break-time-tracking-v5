@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api, { apiErrorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { LoadingBlock } from '../components/UiBits';
+import DashboardGlance from '../components/DashboardGlance';
 import DashboardHeadlines from '../components/DashboardHeadlines';
 import DashboardInsightPanels from '../components/DashboardInsightPanels';
 import { useFeedback } from '../feedback/FeedbackContext';
@@ -99,24 +100,21 @@ export default function DashboardPage() {
 
   return (
     <div className="page portal-dashboard">
-      <header className="portal-dash-header">
-        <div>
-          <p className="portal-eyebrow">{copy.eyebrow}</p>
-          <h1 className="portal-display">
-            {greeting}
-            <span className="portal-display__sub">{copy.title}</span>
-          </h1>
-          <p className="portal-lead">{copy.subtitle}</p>
-        </div>
-        {auth.canTrackBreaks && (
-          <Link className="btn btn-soft-green" to="/app/tracking">
-            Open live tracking
-          </Link>
-        )}
-      </header>
+      <div className="dashboard-shell">
+        <div className="dashboard-main">
+          <header className="dashboard-title-box">
+            <div>
+              <p className="portal-eyebrow">{copy.eyebrow}</p>
+              <h1>{greeting}</h1>
+              <p>{copy.subtitle}</p>
+            </div>
+            {auth.canTrackBreaks && (
+              <Link className="btn btn-soft-green" to="/app/tracking">
+                Open live tracking
+              </Link>
+            )}
+          </header>
 
-      {data && (
-        <>
           <DashboardHeadlines data={data} />
           <DashboardInsightPanels data={data} />
 
@@ -182,8 +180,10 @@ export default function DashboardPage() {
               )}
             </div>
           </section>
-        </>
-      )}
+        </div>
+
+        <DashboardGlance data={data} />
+      </div>
     </div>
   );
 }

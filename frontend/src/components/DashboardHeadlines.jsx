@@ -7,40 +7,11 @@ function formatNumber(value) {
   return Number(value).toLocaleString();
 }
 
-function formatPercent(value) {
-  if (value == null || Number.isNaN(Number(value))) return '—';
-  const n = Number(value);
-  return `${n % 1 === 0 ? n : n.toFixed(1)}%`;
-}
-
-function formatChange(value) {
-  if (value == null || Number.isNaN(Number(value))) return null;
-  const n = Number(value);
-  const abs = Math.abs(n);
-  const label = `${n > 0 ? '+' : n < 0 ? '−' : ''}${abs % 1 === 0 ? abs : abs.toFixed(1)}%`;
-  return { value: n, label };
-}
-
 function formatTrendDate(value) {
   if (!value) return '';
   const d = new Date(`${value}T00:00:00`);
   if (Number.isNaN(d.getTime())) return String(value);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function ChangeBadge({ change, invert }) {
-  const parsed = formatChange(change);
-  if (!parsed) return null;
-  const up = parsed.value > 0;
-  const down = parsed.value < 0;
-  const good = invert ? down : up;
-  const bad = invert ? up : down;
-  const tone = good ? 'up' : bad ? 'down' : 'flat';
-  return (
-    <span className={`headlines-metric__change is-${tone}`}>
-      {up ? '↑' : down ? '↓' : '→'} {parsed.label}
-    </span>
-  );
 }
 
 function HeadlinesTooltip({ active, payload }) {
@@ -70,47 +41,9 @@ export default function DashboardHeadlines({ data }) {
   return (
     <section className="headlines-card portal-widget-3d" aria-label="Break headlines">
       <header className="headlines-card__head">
-        <h2>The headlines.</h2>
-        <p>The numbers that matter most this month — live floor activity and {monthLabel} compliance.</p>
+        <h2>This period.</h2>
+        <p>Break volume across the last 30 days — {monthLabel} meal and comfort activity.</p>
       </header>
-
-      <div className="headlines-metrics">
-        <article className="headlines-metric">
-          <span className="headlines-metric__label">On break now</span>
-          <div className="headlines-metric__row">
-            <strong>{formatNumber(data.onBreakNow)}</strong>
-          </div>
-          <p className="headlines-metric__note">People currently away from the floor.</p>
-        </article>
-
-        <article className="headlines-metric">
-          <span className="headlines-metric__label">Breaks today</span>
-          <div className="headlines-metric__row">
-            <strong>{formatNumber(data.breaksToday)}</strong>
-            <ChangeBadge change={data.breaksChangePercent} />
-          </div>
-        </article>
-
-        <article className="headlines-metric">
-          <span className="headlines-metric__label">Within-limit rate</span>
-          <div className="headlines-metric__row">
-            <strong className={Number(data.compliancePercent) >= 90 ? 'is-good' : undefined}>
-              {formatPercent(data.compliancePercent)}
-            </strong>
-            <ChangeBadge change={data.complianceChangePercent} />
-          </div>
-        </article>
-
-        <article className="headlines-metric">
-          <span className="headlines-metric__label">Limit breaches</span>
-          <div className="headlines-metric__row">
-            <strong className={Number(data.limitBreachesToday) > 0 ? 'is-bad' : 'is-good'}>
-              {formatNumber(data.limitBreachesToday)}
-            </strong>
-            <ChangeBadge change={data.limitBreachesChangePercent} invert />
-          </div>
-        </article>
-      </div>
 
       <div className="headlines-chart" aria-hidden={trend.length === 0}>
         <ResponsiveContainer width="100%" height={128}>
