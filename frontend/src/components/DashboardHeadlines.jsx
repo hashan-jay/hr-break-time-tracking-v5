@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { useTheme } from '../theme/ThemeContext';
+import SectionTitle from './SectionTitle';
 
 function formatNumber(value) {
   if (value == null || Number.isNaN(Number(value))) return '—';
@@ -39,12 +40,13 @@ export default function DashboardHeadlines({ data }) {
   const monthLabel = new Date().toLocaleDateString(undefined, { month: 'long' });
 
   return (
-    <section className="headlines-card portal-widget-3d" aria-label="Break headlines">
-      <header className="headlines-card__head">
-        <h2>This period.</h2>
-        <p>Break volume across the last 30 days — {monthLabel} meal and comfort activity.</p>
-      </header>
-
+    <section aria-label="Break headlines">
+      <SectionTitle
+        compact
+        title="This period."
+        description={`Break volume across the last 30 days — ${monthLabel} meal and comfort activity.`}
+      />
+      <div className="headlines-card portal-widget-3d">
       <div className="headlines-chart" aria-hidden={trend.length === 0}>
         <ResponsiveContainer width="100%" height={128}>
           <AreaChart data={trend} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
@@ -71,6 +73,7 @@ export default function DashboardHeadlines({ data }) {
             />
           </AreaChart>
         </ResponsiveContainer>
+      </div>
       </div>
     </section>
   );

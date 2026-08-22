@@ -6,6 +6,7 @@ import { LoadingBlock } from '../components/UiBits';
 import DashboardGlance from '../components/DashboardGlance';
 import DashboardHeadlines from '../components/DashboardHeadlines';
 import DashboardInsightPanels from '../components/DashboardInsightPanels';
+import SectionTitle from '../components/SectionTitle';
 import { useFeedback } from '../feedback/FeedbackContext';
 import { roleGreeting } from '../lib/roles';
 
@@ -119,10 +120,11 @@ export default function DashboardPage() {
           <DashboardInsightPanels data={data} />
 
           <section className="portal-quick-section">
-            <div className="portal-section-head">
-              <h2>Quick actions</h2>
-              <p>Jump into the workflows you use most for today’s break tracking.</p>
-            </div>
+            <SectionTitle
+              compact
+              title="Quick actions"
+              description="Jump into the workflows you use most for today’s break tracking."
+            />
             <div className="portal-quick-grid">
               {auth.can('tracking') && (
                 <QuickLink

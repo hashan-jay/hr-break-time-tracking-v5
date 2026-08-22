@@ -68,9 +68,11 @@ export default function DashboardGlance({ data }) {
 
   return (
     <aside className="glance-rail" aria-label="At a glance">
-      <header className="glance-rail__head">
-        <h2>At a glance</h2>
-        <p>Last 30 days</p>
+      <header className="section-title-box section-title-box--compact">
+        <div>
+          <h2>At a glance</h2>
+          <p>Last 30 days</p>
+        </div>
       </header>
 
       <GlanceCard

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { useTheme } from '../theme/ThemeContext';
+import SectionTitle from './SectionTitle';
 
 function formatNumber(value) {
   if (value == null || Number.isNaN(Number(value))) return '—';
@@ -101,92 +102,101 @@ export default function DashboardInsightPanels({ data }) {
 
   return (
     <>
-      <section className="headlines-card portal-widget-3d" aria-label="Workforce overview">
-        <header className="headlines-card__head">
-          <h2>Workforce snapshot.</h2>
-          <p>Who is on the roster right now, and how many people are away from the floor.</p>
-        </header>
-        <div className="headlines-metrics headlines-metrics--3">
-          <Metric
-            label="Active employees"
-            value={formatNumber(data.activeEmployees)}
-            note="On the live roster and visible in tracking."
-          />
-          <Metric
-            label="Departments"
-            value={formatNumber(data.activeDepartments)}
-            note="Active teams used for assignments and reports."
-          />
-          <Metric
-            label="On break now"
-            value={formatNumber(data.onBreakNow)}
-            note={`${formatNumber(workingNow)} working · ${formatPercent(awayShare)} away`}
-          />
-        </div>
-        <div className="insight-occupancy" aria-hidden="true">
-          <div className="insight-occupancy__track">
-            <span
-              className="insight-occupancy__away"
-              style={{ width: `${Math.min(awayShare, 100)}%` }}
+      <section aria-label="Workforce overview">
+        <SectionTitle
+          compact
+          title="Workforce snapshot."
+          description="Who is on the roster right now, and how many people are away from the floor."
+        />
+        <div className="headlines-card portal-widget-3d">
+          <div className="headlines-metrics headlines-metrics--3">
+            <Metric
+              label="Active employees"
+              value={formatNumber(data.activeEmployees)}
+              note="On the live roster and visible in tracking."
+            />
+            <Metric
+              label="Departments"
+              value={formatNumber(data.activeDepartments)}
+              note="Active teams used for assignments and reports."
+            />
+            <Metric
+              label="On break now"
+              value={formatNumber(data.onBreakNow)}
+              note={`${formatNumber(workingNow)} working · ${formatPercent(awayShare)} away`}
             />
           </div>
-          <p>Floor occupancy this moment — filled portion is people currently on break.</p>
+          <div className="insight-occupancy" aria-hidden="true">
+            <div className="insight-occupancy__track">
+              <span
+                className="insight-occupancy__away"
+                style={{ width: `${Math.min(awayShare, 100)}%` }}
+              />
+            </div>
+            <p>Floor occupancy this moment — filled portion is people currently on break.</p>
+          </div>
         </div>
       </section>
 
       <div className="break-type-stack">
-        <section className="headlines-card portal-widget-3d" aria-label="Meal break insights">
-          <header className="headlines-card__head">
-            <h2>Meal breaks.</h2>
-            <p>Meal limit is {mealLimit} minutes. Counts cover each employee&apos;s current shift.</p>
-          </header>
-          <div className="headlines-metrics headlines-metrics--3">
-            <Metric
-              label="On meal now"
-              value={formatNumber(data.mealOnBreakNow)}
-              note="People currently away on a meal break."
-            />
-            <Metric
-              label="Within limit"
-              value={formatNumber(data.mealWellSatisfiedToday)}
-              tone={Number(data.mealExceededToday) === 0 ? 'good' : undefined}
-              note={`${formatPercent(mealRate)} stayed inside the ${mealLimit}-minute meal limit.`}
-            />
-            <Metric
-              label="Over limit"
-              value={formatNumber(data.mealExceededToday)}
-              tone={Number(data.mealExceededToday) > 0 ? 'bad' : 'good'}
-              note="Went past the meal limit this shift."
-            />
+        <section aria-label="Meal break insights">
+          <SectionTitle
+            compact
+            title="Meal breaks."
+            description={`Meal limit is ${mealLimit} minutes. Counts cover each employee's current shift.`}
+          />
+          <div className="headlines-card portal-widget-3d">
+            <div className="headlines-metrics headlines-metrics--3">
+              <Metric
+                label="On meal now"
+                value={formatNumber(data.mealOnBreakNow)}
+                note="People currently away on a meal break."
+              />
+              <Metric
+                label="Within limit"
+                value={formatNumber(data.mealWellSatisfiedToday)}
+                tone={Number(data.mealExceededToday) === 0 ? 'good' : undefined}
+                note={`${formatPercent(mealRate)} stayed inside the ${mealLimit}-minute meal limit.`}
+              />
+              <Metric
+                label="Over limit"
+                value={formatNumber(data.mealExceededToday)}
+                tone={Number(data.mealExceededToday) > 0 ? 'bad' : 'good'}
+                note="Went past the meal limit this shift."
+              />
+            </div>
+            <MiniSpark data={trend} dataKey="mealBreaks" color={mealColor} unit="meal breaks" />
           </div>
-          <MiniSpark data={trend} dataKey="mealBreaks" color={mealColor} unit="meal breaks" />
         </section>
 
-        <section className="headlines-card portal-widget-3d" aria-label="Comfort break insights">
-          <header className="headlines-card__head">
-            <h2>Comfort breaks.</h2>
-            <p>Comfort limit is {comfortLimit} minutes. Counts cover each employee&apos;s current shift.</p>
-          </header>
-          <div className="headlines-metrics headlines-metrics--3">
-            <Metric
-              label="On comfort now"
-              value={formatNumber(data.comfortOnBreakNow)}
-              note="People currently away on a comfort break."
-            />
-            <Metric
-              label="Within limit"
-              value={formatNumber(data.comfortWellSatisfiedToday)}
-              tone={Number(data.comfortExceededToday) === 0 ? 'good' : undefined}
-              note={`${formatPercent(comfortRate)} stayed inside the ${comfortLimit}-minute comfort limit.`}
-            />
-            <Metric
-              label="Over limit"
-              value={formatNumber(data.comfortExceededToday)}
-              tone={Number(data.comfortExceededToday) > 0 ? 'bad' : 'good'}
-              note="Went past the comfort limit this shift."
-            />
+        <section aria-label="Comfort break insights">
+          <SectionTitle
+            compact
+            title="Comfort breaks."
+            description={`Comfort limit is ${comfortLimit} minutes. Counts cover each employee's current shift.`}
+          />
+          <div className="headlines-card portal-widget-3d">
+            <div className="headlines-metrics headlines-metrics--3">
+              <Metric
+                label="On comfort now"
+                value={formatNumber(data.comfortOnBreakNow)}
+                note="People currently away on a comfort break."
+              />
+              <Metric
+                label="Within limit"
+                value={formatNumber(data.comfortWellSatisfiedToday)}
+                tone={Number(data.comfortExceededToday) === 0 ? 'good' : undefined}
+                note={`${formatPercent(comfortRate)} stayed inside the ${comfortLimit}-minute comfort limit.`}
+              />
+              <Metric
+                label="Over limit"
+                value={formatNumber(data.comfortExceededToday)}
+                tone={Number(data.comfortExceededToday) > 0 ? 'bad' : 'good'}
+                note="Went past the comfort limit this shift."
+              />
+            </div>
+            <MiniSpark data={trend} dataKey="comfortBreaks" color={comfortColor} unit="comfort breaks" />
           </div>
-          <MiniSpark data={trend} dataKey="comfortBreaks" color={comfortColor} unit="comfort breaks" />
         </section>
       </div>
     </>
