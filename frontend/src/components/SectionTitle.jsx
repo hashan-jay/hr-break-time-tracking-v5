@@ -5,12 +5,14 @@ export default function SectionTitle({
   children,
   as = 'h2',
   compact = false,
+  tone = '',
   className = '',
 }) {
   const Heading = as === 'h1' ? 'h1' : 'h2';
   const classes = [
     'section-title-box',
     compact ? 'section-title-box--compact' : '',
+    tone ? `dash-tone--${tone}` : '',
     className,
   ].filter(Boolean).join(' ');
 

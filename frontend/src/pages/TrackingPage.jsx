@@ -354,11 +354,24 @@ export default function TrackingPage() {
             shift is live at this local time can start or end a break; others are greyed out.
           </p>
         </div>
-        <div className="header-stats">
-          {board?.periodLabel && <span>{board.periodLabel}</span>}
-          <span>On break: {board?.onBreakCount ?? 0}</span>
-          <span>Meal: {board?.mealOnBreakCount ?? 0}</span>
-          <span>Comfort: {board?.comfortOnBreakCount ?? 0}</span>
+        <div className="header-stat-tiles">
+          {board?.periodLabel && (
+            <p className="header-stat-tiles__period">{board.periodLabel}</p>
+          )}
+          <div className="header-stat-tiles__row">
+            <article className="header-stat-tile">
+              <span>On break</span>
+              <strong>{board?.onBreakCount ?? 0}</strong>
+            </article>
+            <article className="header-stat-tile">
+              <span>Meal</span>
+              <strong>{board?.mealOnBreakCount ?? 0}</strong>
+            </article>
+            <article className="header-stat-tile">
+              <span>Comfort</span>
+              <strong>{board?.comfortOnBreakCount ?? 0}</strong>
+            </article>
+          </div>
         </div>
       </header>
 

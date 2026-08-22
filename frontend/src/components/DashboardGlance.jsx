@@ -49,17 +49,20 @@ function latestNote(data) {
     return {
       title: 'Needs attention',
       body: `${breaches} ${breaches === 1 ? 'person is' : 'people are'} over a break limit this shift. Open live tracking to review them.`,
+      status: 'alert',
     };
   }
   if (onBreak > 0) {
     return {
       title: 'Floor is active',
       body: `${onBreak} ${onBreak === 1 ? 'person is' : 'people are'} on break right now. Everyone else is still within today’s limits.`,
+      status: 'info',
     };
   }
   return {
     title: 'All clear',
     body: 'Nobody is on break, and no one has gone past a meal or comfort limit this shift.',
+    status: 'ok',
   };
 }
 
@@ -102,7 +105,7 @@ export default function DashboardGlance({ data }) {
         value={formatNumber(data.activeEmployees)}
       />
 
-      <article className="glance-card glance-card--note">
+      <article className={`glance-card glance-card--note is-${note.status}`}>
         <span className="glance-card__label">{note.title}</span>
         <p>{note.body}</p>
       </article>

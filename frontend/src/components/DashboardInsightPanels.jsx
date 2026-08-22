@@ -76,9 +76,9 @@ function MiniSpark({ data, dataKey, color, unit }) {
   );
 }
 
-function Metric({ label, value, note, tone }) {
+function Metric({ label, value, note, tone, accent }) {
   return (
-    <article className="headlines-metric">
+    <article className={`headlines-metric${accent ? ` dash-metric--${accent}` : ''}`}>
       <span className="headlines-metric__label">{label}</span>
       <div className="headlines-metric__row">
         <strong className={tone ? `is-${tone}` : undefined}>{value}</strong>
@@ -91,8 +91,8 @@ function Metric({ label, value, note, tone }) {
 export default function DashboardInsightPanels({ data }) {
   const { isDark } = useTheme();
   const trend = useMemo(() => data?.trend || [], [data?.trend]);
-  const mealColor = isDark ? '#5eead4' : '#0f766e';
-  const comfortColor = isDark ? '#93c5fd' : '#1d4ed8';
+  const mealColor = isDark ? '#fb923c' : '#ea580c';
+  const comfortColor = isDark ? '#2dd4bf' : '#0d9488';
   const mealLimit = data.mealLimitMinutes ?? 60;
   const comfortLimit = data.comfortLimitMinutes ?? 20;
   const mealRate = rate(data.mealWellSatisfiedToday, data.mealExceededToday);
@@ -105,25 +105,29 @@ export default function DashboardInsightPanels({ data }) {
       <section aria-label="Workforce overview">
         <SectionTitle
           compact
+          tone="sky"
           title="Workforce snapshot."
           description="Who is on the roster right now, and how many people are away from the floor."
         />
-        <div className="headlines-card portal-widget-3d">
+        <div className="headlines-card portal-widget-3d dash-panel--sky">
           <div className="headlines-metrics headlines-metrics--3">
             <Metric
               label="Active employees"
               value={formatNumber(data.activeEmployees)}
               note="On the live roster and visible in tracking."
+              accent="indigo"
             />
             <Metric
               label="Departments"
               value={formatNumber(data.activeDepartments)}
               note="Active teams used for assignments and reports."
+              accent="violet"
             />
             <Metric
               label="On break now"
               value={formatNumber(data.onBreakNow)}
               note={`${formatNumber(workingNow)} working · ${formatPercent(awayShare)} away`}
+              accent="amber"
             />
           </div>
           <div className="insight-occupancy" aria-hidden="true">
@@ -142,27 +146,31 @@ export default function DashboardInsightPanels({ data }) {
         <section aria-label="Meal break insights">
           <SectionTitle
             compact
+            tone="amber"
             title="Meal breaks."
             description={`Meal limit is ${mealLimit} minutes. Counts cover each employee's current shift.`}
           />
-          <div className="headlines-card portal-widget-3d">
+          <div className="headlines-card portal-widget-3d dash-panel--amber">
             <div className="headlines-metrics headlines-metrics--3">
               <Metric
                 label="On meal now"
                 value={formatNumber(data.mealOnBreakNow)}
                 note="People currently away on a meal break."
+                accent="amber"
               />
               <Metric
                 label="Within limit"
                 value={formatNumber(data.mealWellSatisfiedToday)}
                 tone={Number(data.mealExceededToday) === 0 ? 'good' : undefined}
                 note={`${formatPercent(mealRate)} stayed inside the ${mealLimit}-minute meal limit.`}
+                accent="lime"
               />
               <Metric
                 label="Over limit"
                 value={formatNumber(data.mealExceededToday)}
                 tone={Number(data.mealExceededToday) > 0 ? 'bad' : 'good'}
                 note="Went past the meal limit this shift."
+                accent="rose"
               />
             </div>
             <MiniSpark data={trend} dataKey="mealBreaks" color={mealColor} unit="meal breaks" />
@@ -172,27 +180,31 @@ export default function DashboardInsightPanels({ data }) {
         <section aria-label="Comfort break insights">
           <SectionTitle
             compact
+            tone="teal"
             title="Comfort breaks."
             description={`Comfort limit is ${comfortLimit} minutes. Counts cover each employee's current shift.`}
           />
-          <div className="headlines-card portal-widget-3d">
+          <div className="headlines-card portal-widget-3d dash-panel--teal">
             <div className="headlines-metrics headlines-metrics--3">
               <Metric
                 label="On comfort now"
                 value={formatNumber(data.comfortOnBreakNow)}
                 note="People currently away on a comfort break."
+                accent="teal"
               />
               <Metric
                 label="Within limit"
                 value={formatNumber(data.comfortWellSatisfiedToday)}
                 tone={Number(data.comfortExceededToday) === 0 ? 'good' : undefined}
                 note={`${formatPercent(comfortRate)} stayed inside the ${comfortLimit}-minute comfort limit.`}
+                accent="lime"
               />
               <Metric
                 label="Over limit"
                 value={formatNumber(data.comfortExceededToday)}
                 tone={Number(data.comfortExceededToday) > 0 ? 'bad' : 'good'}
                 note="Went past the comfort limit this shift."
+                accent="rose"
               />
             </div>
             <MiniSpark data={trend} dataKey="comfortBreaks" color={comfortColor} unit="comfort breaks" />

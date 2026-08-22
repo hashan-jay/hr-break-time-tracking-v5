@@ -36,17 +36,18 @@ export default function DashboardHeadlines({ data }) {
     })),
     [data?.trend],
   );
-  const line = isDark ? '#93c5fd' : '#1d4ed8';
+  const line = isDark ? '#e879f9' : '#7c3aed';
   const monthLabel = new Date().toLocaleDateString(undefined, { month: 'long' });
 
   return (
     <section aria-label="Break headlines">
       <SectionTitle
         compact
+        tone="violet"
         title="This period."
         description={`Break volume across the last 30 days — ${monthLabel} meal and comfort activity.`}
       />
-      <div className="headlines-card portal-widget-3d">
+      <div className="headlines-card portal-widget-3d dash-panel--violet">
       <div className="headlines-chart" aria-hidden={trend.length === 0}>
         <ResponsiveContainer width="100%" height={128}>
           <AreaChart data={trend} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>

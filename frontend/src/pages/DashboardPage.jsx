@@ -122,6 +122,7 @@ export default function DashboardPage() {
           <section className="portal-quick-section">
             <SectionTitle
               compact
+              tone="rose"
               title="Quick actions"
               description="Jump into the workflows you use most for today’s break tracking."
             />

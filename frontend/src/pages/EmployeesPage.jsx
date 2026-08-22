@@ -299,9 +299,19 @@ export default function EmployeesPage() {
             system with their records until a Developer permanently deletes them.
           </p>
         </div>
-        <div className="header-stats">
-          <span>Active: {activeEmployees.length}</span>
-          {canDeactivate && <span>Deactivated: {deactivatedEmployees.length}</span>}
+        <div className="header-stat-tiles">
+          <div className="header-stat-tiles__row">
+            <article className="header-stat-tile">
+              <span>Active</span>
+              <strong>{activeEmployees.length}</strong>
+            </article>
+            {canDeactivate && (
+              <article className="header-stat-tile">
+                <span>Deactivated</span>
+                <strong>{deactivatedEmployees.length}</strong>
+              </article>
+            )}
+          </div>
         </div>
       </header>
 
