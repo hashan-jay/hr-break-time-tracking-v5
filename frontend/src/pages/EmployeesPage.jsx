@@ -108,6 +108,7 @@ export default function EmployeesPage() {
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
+  const [listView, setListView] = useState('active');
   const [busyId, setBusyId] = useState(null);
   const loadSeq = useRef(0);
   const searchTimer = useRef(null);
@@ -359,26 +360,53 @@ export default function EmployeesPage() {
             <button type="button" className="btn btn-ghost" onClick={() => setAppliedSearch(search.trim())}>Search</button>
           </div>
 
-          <section className="list-panel">
-            <div className="list-panel__head">
-              <h2>Active employees</h2>
-              <span className="list-panel__count">{activeEmployees.length}</span>
-            </div>
-            <EmployeeTable
-              rows={activeEmployees}
-              emptyLabel="No active employees found."
-              canEdit={canEdit}
-              canDeactivate={canDeactivate}
-              canPurge={false}
-              onEdit={startEdit}
-              onDeactivate={deactivate}
-              onActivate={activate}
-              onPurge={purge}
-              busyId={busyId}
-            />
-          </section>
-
           {canDeactivate && (
+            <div className="list-switch" role="tablist" aria-label="Employee lists">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={listView === 'active'}
+                className={`list-switch__btn${listView === 'active' ? ' is-active' : ''}`}
+                onClick={() => setListView('active')}
+              >
+                Active employees
+                <span className="list-switch__count">{activeEmployees.length}</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={listView === 'deactivated'}
+                className={`list-switch__btn${listView === 'deactivated' ? ' is-active' : ''}`}
+                onClick={() => setListView('deactivated')}
+              >
+                Deactivated employees
+                <span className="list-switch__count">{deactivatedEmployees.length}</span>
+              </button>
+            </div>
+          )}
+
+          {listView === 'active' && (
+            <section className="list-panel">
+              <div className="list-panel__head">
+                <h2>Active employees</h2>
+                <span className="list-panel__count">{activeEmployees.length}</span>
+              </div>
+              <EmployeeTable
+                rows={activeEmployees}
+                emptyLabel="No active employees found."
+                canEdit={canEdit}
+                canDeactivate={canDeactivate}
+                canPurge={false}
+                onEdit={startEdit}
+                onDeactivate={deactivate}
+                onActivate={activate}
+                onPurge={purge}
+                busyId={busyId}
+              />
+            </section>
+          )}
+
+          {canDeactivate && listView === 'deactivated' && (
             <section className="list-panel">
               <div className="list-panel__head">
                 <h2>Deactivated employees</h2>

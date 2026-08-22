@@ -1791,6 +1791,57 @@ tbody tr.is-deleted:hover { background: var(--portal-accent-soft); }
   gap: 1.15rem;
 }
 
+.list-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--hover);
+}
+
+.list-switch__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-sm) - 4px);
+  padding: 0.55rem 0.9rem;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.list-switch__btn:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.list-switch__btn.is-active {
+  color: var(--on-fill);
+  background: var(--portal-fill);
+}
+
+.list-switch__count {
+  min-width: 1.4rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.08);
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.list-switch__btn.is-active .list-switch__count {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .list-panel {
   display: grid;
   gap: 0.65rem;
@@ -2918,4 +2969,27 @@ html[data-theme="dark"] kbd {
   background: rgba(255, 255, 255, 0.07);
   color: #cbd5e1;
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="dark"] .list-switch {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .list-switch__btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--portal-ink);
+}
+
+html[data-theme="dark"] .list-switch__btn.is-active {
+  background: #eef1f5;
+  color: #111827;
+}
+
+html[data-theme="dark"] .list-switch__count {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="dark"] .list-switch__btn.is-active .list-switch__count {
+  background: rgba(17, 24, 39, 0.1);
 }
