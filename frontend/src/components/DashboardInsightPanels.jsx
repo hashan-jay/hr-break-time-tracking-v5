@@ -137,7 +137,7 @@ export default function DashboardInsightPanels({ data }) {
                 style={{ width: `${Math.min(awayShare, 100)}%` }}
               />
             </div>
-            <p>Floor occupancy this moment — filled portion is people currently on break.</p>
+            <p>Green is people in office. Orange-red from the right is people currently on break.</p>
           </div>
         </div>
       </section>
