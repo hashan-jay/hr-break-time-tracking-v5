@@ -1,8 +1,20 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const frontendRoot = fileURLToPath(new URL('.', import.meta.url))
+
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      recharts: path.resolve(frontendRoot, 'node_modules/recharts/es6/index.js'),
+    },
+  },
+  optimizeDeps: {
+    include: ['recharts'],
+  },
   server: {
     port: 5173,
     proxy: {

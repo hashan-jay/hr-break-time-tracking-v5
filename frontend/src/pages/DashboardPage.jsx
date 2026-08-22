@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api, { apiErrorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { LoadingBlock } from '../components/UiBits';
+import DashboardHeadlines from '../components/DashboardHeadlines';
 import { useFeedback } from '../feedback/FeedbackContext';
 import { roleGreeting } from '../lib/roles';
 
@@ -109,24 +110,34 @@ export default function DashboardPage() {
   );
 
   useEffect(() => {
-    let timer;
+    let cancelled = false;
+    let inFlight = false;
     let lastError = '';
     const load = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const dashRes = await api.get('/reports/dashboard');
+        if (cancelled) return;
         setData(dashRes.data);
         lastError = '';
       } catch (err) {
+        if (cancelled) return;
         const msg = apiErrorMessage(err, 'Failed to load dashboard.');
         if (lastError !== msg) {
           lastError = msg;
           toast.error(msg);
         }
+      } finally {
+        inFlight = false;
       }
     };
     load();
-    timer = setInterval(load, 5000);
-    return () => clearInterval(timer);
+    const timer = setInterval(load, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [toast]);
 
   useEffect(() => {
@@ -158,6 +169,8 @@ export default function DashboardPage() {
 
       {data && (
         <>
+          <DashboardHeadlines data={data} />
+
           <section className="portal-kpi-grid" aria-label="Workforce overview">
             <KpiCard label="Active employees" value={data.activeEmployees} icon={KPI_ICONS.users} tone="slate" />
             <KpiCard label="Departments" value={data.activeDepartments} icon={KPI_ICONS.building} tone="violet" />

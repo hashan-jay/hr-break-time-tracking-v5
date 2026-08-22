@@ -32,11 +32,60 @@ public class ReportService : IReportService
 
     public async Task<DashboardDto> GetDashboardAsync()
     {
+        var today = TimeDisplay.TodayLocal();
+        var from = today.AddDays(-29);
+        var now = TimeDisplay.NowLocal();
+
+        // DbContext is not thread-safe. Keep these reads sequential so one request
+        // never starts a second query on the same scoped context.
         var board = await _breakTracking.GetLiveBoardAsync();
+        var activeEmployees = await _db.Employees.CountAsync(e => !e.IsDeleted);
+        var activeDepartments = await _db.Departments.CountAsync(d => !d.IsDeleted);
+        var sessionRows = await _db.BreakSessions.AsNoTracking()
+            .Where(b => b.BreakDate >= from && b.BreakDate <= today)
+            .Select(b => new
+            {
+                b.BreakDate,
+                b.BreakType,
+                b.DurationSeconds,
+                b.OutTime,
+                b.InTime,
+                b.EmployeeId,
+            })
+            .ToListAsync();
+
+        var rows = sessionRows
+            .Select(r => new DashboardSessionRow(
+                r.BreakDate,
+                r.BreakType,
+                r.DurationSeconds,
+                r.OutTime,
+                r.InTime,
+                r.EmployeeId))
+            .ToList();
+        var yesterday = today.AddDays(-1);
+        var mealLimitSeconds = Math.Max(board.MealLimitMinutes, 1) * 60;
+        var comfortLimitSeconds = Math.Max(board.ComfortLimitMinutes, 1) * 60;
+
+        var points = Enumerable.Range(0, 30)
+            .Select(offset =>
+            {
+                var date = from.AddDays(offset);
+                var dayRows = rows.Where(r => r.BreakDate == date).ToList();
+                var mealBreaks = dayRows.Count(r => IsMeal(r.BreakType));
+                var comfortBreaks = dayRows.Count - mealBreaks;
+                return new DashboardTrendPointDto(date, dayRows.Count, mealBreaks, comfortBreaks);
+            })
+            .ToList();
+
+        var breaksToday = points[^1].Breaks;
+        var breaksYesterday = points[^2].Breaks;
+        var usageToday = ScoreUsage(rows, today, now, mealLimitSeconds, comfortLimitSeconds);
+        var usageYesterday = ScoreUsage(rows, yesterday, now, mealLimitSeconds, comfortLimitSeconds);
 
         return new DashboardDto(
-            await _db.Employees.CountAsync(e => !e.IsDeleted),
-            await _db.Departments.CountAsync(d => !d.IsDeleted),
+            activeEmployees,
+            activeDepartments,
             board.OnBreakCount,
             board.ComfortOnBreakCount,
             board.MealOnBreakCount,
@@ -49,8 +98,84 @@ public class ReportService : IReportService
             board.ComfortLimitMinutes,
             board.MealLimitMinutes,
             board.ComfortStartLimit,
-            board.MealStartLimit);
+            board.MealStartLimit,
+            breaksToday,
+            breaksYesterday,
+            ChangePercent(breaksToday, breaksYesterday),
+            usageToday.CompliancePercent,
+            ChangePercent(usageToday.CompliancePercent, usageYesterday.CompliancePercent),
+            usageToday.LimitBreaches,
+            usageYesterday.LimitBreaches,
+            ChangePercent(usageToday.LimitBreaches, usageYesterday.LimitBreaches),
+            points);
     }
+
+    private static bool IsMeal(string? breakType)
+        => BreakTypes.Meal.Equals(breakType, StringComparison.OrdinalIgnoreCase);
+
+    private static double? ChangePercent(double current, double previous)
+    {
+        if (Math.Abs(previous) < 0.0001)
+            return Math.Abs(current) < 0.0001 ? 0 : 100;
+        return Math.Round((current - previous) / previous * 100, 1);
+    }
+
+    private static (double CompliancePercent, int LimitBreaches) ScoreUsage(
+        IReadOnlyList<DashboardSessionRow> rows,
+        DateOnly date,
+        DateTime now,
+        int mealLimitSeconds,
+        int comfortLimitSeconds)
+    {
+        var dayRows = rows.Where(r => r.BreakDate == date).ToList();
+        if (dayRows.Count == 0)
+            return (100, 0);
+
+        var breaches = 0;
+        var usedEmployees = 0;
+        foreach (var employeeRows in dayRows.GroupBy(r => r.EmployeeId))
+        {
+            usedEmployees++;
+            var mealSeconds = SumSeconds(employeeRows, now, meal: true);
+            var comfortSeconds = SumSeconds(employeeRows, now, meal: false);
+            if (mealSeconds > mealLimitSeconds || comfortSeconds > comfortLimitSeconds)
+                breaches++;
+        }
+
+        var compliance = usedEmployees == 0
+            ? 100
+            : Math.Round((usedEmployees - breaches) * 100d / usedEmployees, 1);
+        return (compliance, breaches);
+    }
+
+    private static int SumSeconds(IEnumerable<DashboardSessionRow> employeeRows, DateTime now, bool meal)
+    {
+        var total = 0;
+        foreach (var row in employeeRows)
+        {
+            if (IsMeal(row.BreakType) != meal)
+                continue;
+            if (row.DurationSeconds is int stored)
+            {
+                total += stored;
+                continue;
+            }
+
+            var outTime = TimeDisplay.AsLocal(row.OutTime);
+            var end = row.InTime is DateTime closed ? TimeDisplay.AsLocal(closed) : now;
+            if (end > outTime)
+                total += (int)(end - outTime).TotalSeconds;
+        }
+        return total;
+    }
+
+    private sealed record DashboardSessionRow(
+        DateOnly BreakDate,
+        string? BreakType,
+        int? DurationSeconds,
+        DateTime OutTime,
+        DateTime? InTime,
+        int EmployeeId);
 
     public async Task<ReportSummaryDto> GetReportAsync(DateOnly from, DateOnly to, int? departmentId, int? employeeId, int? shiftId)
     {

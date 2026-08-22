@@ -251,6 +251,12 @@ public record ReportSummaryDto(
     int ComfortStartLimit = BreakStatusCodes.DefaultComfortStartLimit,
     int MealStartLimit = BreakStatusCodes.DefaultMealStartLimit);
 
+public record DashboardTrendPointDto(
+    DateOnly Date,
+    int Breaks,
+    int MealBreaks,
+    int ComfortBreaks);
+
 public record DashboardDto(
     int ActiveEmployees,
     int ActiveDepartments,
@@ -266,7 +272,16 @@ public record DashboardDto(
     int ComfortLimitMinutes,
     int MealLimitMinutes,
     int ComfortStartLimit = BreakStatusCodes.DefaultComfortStartLimit,
-    int MealStartLimit = BreakStatusCodes.DefaultMealStartLimit);
+    int MealStartLimit = BreakStatusCodes.DefaultMealStartLimit,
+    int BreaksToday = 0,
+    int BreaksYesterday = 0,
+    double? BreaksChangePercent = null,
+    double CompliancePercent = 100,
+    double? ComplianceChangePercent = null,
+    int LimitBreachesToday = 0,
+    int LimitBreachesYesterday = 0,
+    double? LimitBreachesChangePercent = null,
+    IReadOnlyList<DashboardTrendPointDto>? Trend = null);
 
 public record SystemSettingDto(int Id, string Key, string Value, string? Description);
 

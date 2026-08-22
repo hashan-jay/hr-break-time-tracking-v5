@@ -181,6 +181,7 @@ code, kbd {
 .app-portal .settings-list,
 .app-portal .list-panel,
 .app-portal .stat-card,
+.app-portal .headlines-card,
 .app-portal .confirm-dialog,
 .app-portal .login-panel {
   border-radius: var(--radius-lg);
